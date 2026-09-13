@@ -66,7 +66,6 @@ html.nav-locked {
    number of steps, and the progress a step is worth stops matching
    1/(stops-1) — which silently skips a stop. */
 
-
 .proto__stage {
   position: sticky;
   top: 0;
@@ -127,8 +126,6 @@ html.nav-locked {
 .proto__hud span {
   color: #ffffff;
 }
-
-
 
 /* The crossing. Sits above the canvas and below the copy. */
 .proto__blackout {
@@ -281,19 +278,6 @@ html.nav-locked {
 
 .pov__index li span {
   color: var(--blue);
-}
-
-.pov__cta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 2.5rem;
-}
-
-.pov__email {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
 }
 
 /* ------------------------------------------------------------------
