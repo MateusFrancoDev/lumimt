@@ -26,6 +26,7 @@ import {
   GAS_FRAGMENT,
   GLOW_FRAGMENT,
   GLOW_VERTEX,
+  ICE_WORLD_FRAGMENT,
   SURFACE_FRAGMENT,
   SURFACE_VERTEX,
 } from "@/components/proto/shaders";
@@ -330,18 +331,6 @@ interface SurfaceParams {
   city: number;
 }
 
-/** The planet as it is now: the NASA map, untouched. */
-const EARTH: SurfaceParams = {
-  landTint: "#3c6b45",
-  seaTint: "#0f3f66",
-  atmo: "#6fa8d6",
-  landMix: 0,
-  seaMix: 0,
-  iceLatitude: 0.93,
-  iceStrength: 0.25,
-  city: 0.85,
-};
-
 /**
  * The five eras. Each one repaints the same real geography rather than
  * replacing it, so the continents are always the actual continents —
@@ -437,31 +426,44 @@ function surfaceUniforms(params: SurfaceParams, light: Vector3, maps: EarthMaps)
   };
 }
 
-function EarthPlanet() {
-  const spin = useRef<Group>(null);
-  const maps = useEarthMaps();
+/**
+ * LHS 1140 b, for the section about the company: a world that is
+ * known only from the light it takes away. It is tidally locked, so
+ * it does not spin — the eye has to stay under the star — and what
+ * moves is the pack ice at the edge of the open water.
+ */
+function IceWorld() {
   const uniforms = useMemo(
-    () => surfaceUniforms(EARTH, new Vector3(-1, 0.5, 0.8), maps),
-    [maps],
+    () => ({
+      uLight: { value: new Vector3(-0.85, 0.45, 0.7).normalize() },
+      uIce: { value: new Color("#bccad2") },
+      uIceShadow: { value: new Color("#6d8494") },
+      uSea: { value: new Color("#6b92aa") },
+      uSeaDeep: { value: new Color("#1d3a52") },
+      uAtmo: { value: new Color("#8db1c7") },
+      uEye: { value: 0.86 },
+      uTime: { value: 0 },
+    }),
+    [],
   );
 
   useFrame((_, delta) => {
-    if (spin.current) spin.current.rotation.y += delta * 0.03;
+    uniforms.uTime.value += delta;
   });
 
   return (
     <group position={BODIES.about}>
-      <group ref={spin} rotation={[0.4, 0, 0.41]}>
+      <group rotation={[0.4, 0, 0.41]}>
         <mesh>
           <sphereGeometry args={[3, 96, 64]} />
           <shaderMaterial
             uniforms={uniforms}
             vertexShader={SURFACE_VERTEX}
-            fragmentShader={SURFACE_FRAGMENT}
+            fragmentShader={ICE_WORLD_FRAGMENT}
           />
         </mesh>
       </group>
-      <Glow size={11} colour="#6fa8d6" intensity={0.22} power={3.2} />
+      <Glow size={11} colour="#8db1c7" intensity={0.18} power={3.2} />
     </group>
   );
 }
@@ -775,7 +777,7 @@ export function ProtoScene({
 
       <Suspense fallback={null}>
         <group ref={farSide} visible={false}>
-        <EarthPlanet />
+        <IceWorld />
         <ErasPlanet />
         <GasGiant />
         <ProjectMarkers

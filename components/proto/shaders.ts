@@ -116,6 +116,92 @@ export const SURFACE_FRAGMENT = /* glsl */ `
   }
 `;
 
+/**
+ * LHS 1140 b — an "eyeball" world.
+ *
+ * A super-Earth 48 light years away, found the way the whole site is
+ * framed: by the dip it makes crossing a red dwarf. It is tidally
+ * locked, and the reading of the JWST spectra that fits best is a
+ * shell of ice with one open ocean at the substellar point — the only
+ * place the star keeps warm. So the eye is not painted onto the
+ * surface: it is wherever the light falls straightest, and the ice
+ * breaks up into floes on the way out of it.
+ */
+export const ICE_WORLD_FRAGMENT = /* glsl */ `
+  uniform vec3 uLight;
+  uniform vec3 uIce;
+  uniform vec3 uIceShadow;
+  uniform vec3 uSea;
+  uniform vec3 uSeaDeep;
+  uniform vec3 uAtmo;
+  uniform float uEye;   // cosine of the eye's angular radius
+  uniform float uTime;
+
+  varying vec3 vNormalW;
+  varying vec3 vLocal;
+  varying vec3 vView;
+
+  ${NOISE}
+
+  /** Long, thin, branching ridges — fractures in a shell of ice. */
+  float ridged(vec3 p) {
+    float total = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+      float n = 1.0 - abs(noise(p) * 2.0 - 1.0);
+      total += n * n * amp;
+      p *= 2.13;
+      amp *= 0.5;
+    }
+    return total;
+  }
+
+  void main() {
+    vec3 unit = normalize(vLocal);
+    vec3 normal = normalize(vNormalW);
+    vec3 light = normalize(uLight);
+    vec3 view = normalize(vView);
+    float lambert = dot(normal, light);
+
+    // the shell: almost uniform, a faint albedo drift, fine fractures
+    float broad = fbm(unit * 1.6);
+    float cracks = ridged(unit * 4.4 + vec3(broad * 1.8));
+    vec3 ice = mix(uIceShadow, uIce, 0.55 + (broad - 0.5) * 0.7);
+    ice = mix(ice, uIceShadow * 0.78, smoothstep(0.8, 0.98, cracks) * 0.35);
+
+    // The eye follows the star. Its coast is a gradient, not a line:
+    // slush first, then open water, then depth — read from a distance
+    // it is one soft iris rather than a hole cut in the ice.
+    float coast = fbm(unit * 3.8 + vec3(0.0, uTime * 0.004, 0.0));
+    float reach = lambert + (coast - 0.5) * 0.06;
+    float slush = smoothstep(uEye - 0.09, uEye, reach);
+    float open = smoothstep(uEye - 0.02, uEye + 0.05, reach);
+    float deep = smoothstep(uEye + 0.02, 1.0, reach);
+
+    // pack ice drifting through the slush, faint enough to be texture
+    float floes = fbm(unit * 14.0 + vec3(uTime * 0.012, 0.0, uTime * 0.008));
+    float water = max(open, slush * (1.0 - open) * smoothstep(0.35, 0.65, floes) * 0.45);
+
+    vec3 sea = mix(uSea, uSeaDeep, deep);
+    vec3 base = mix(ice, sea, water);
+
+    float day = smoothstep(-0.08, 0.7, lambert);
+    vec3 colour = base * mix(0.012, 1.0, day * day * (3.0 - 2.0 * day));
+
+    // the star, caught in the open water
+    vec3 halfway = normalize(light + view);
+    float glint = pow(max(dot(normal, halfway), 0.0), 520.0);
+    colour += vec3(0.92, 0.95, 1.0) * glint * water * day * 0.6;
+
+    // a thin atmosphere, and the red dwarf showing only at the terminator
+    float fresnel = pow(1.0 - clamp(dot(normal, view), 0.0, 1.0), 3.2);
+    colour += uAtmo * fresnel * (0.1 + day * 0.5);
+    colour += vec3(0.62, 0.36, 0.24) * pow(1.0 - abs(lambert), 12.0) * 0.07;
+
+    gl_FragColor = vec4(colour, 1.0);
+  }
+`;
+
 /** Banded, turbulent, slowly shearing — a gas giant. */
 export const GAS_FRAGMENT = /* glsl */ `
   uniform vec3 uBandA;

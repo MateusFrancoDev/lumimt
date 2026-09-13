@@ -236,7 +236,7 @@ export const STOPS: Stop[] = [
     fit: false,
     radius: 0,
   },
-  // 02 — the Earth-like world
+  // 02 — LHS 1140 b, the ice world
   {
     phase: "about",
     capability: 0,
