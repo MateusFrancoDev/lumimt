@@ -311,6 +311,17 @@ html.nav-locked {
   color: var(--text-dim);
 }
 
+/* What the planet was doing in that era. It belongs to the label
+   above it, not to the service below, so it sits tight under the
+   label and stays quieter than the lead. */
+.pov__note {
+  margin-top: calc(clamp(0.6rem, 1.6vh, 1.1rem) * -0.55);
+  max-width: 34ch;
+  font-size: clamp(0.78rem, 0.9vw, 0.86rem);
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
 .pov__display {
   font-size: clamp(2.6rem, 9vw, 6.5rem);
   line-height: 0.94;

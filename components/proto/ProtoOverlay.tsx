@@ -257,6 +257,7 @@ export function ProtoOverlay({ phase, capability, project, hint }: ProtoOverlayP
               inert={index !== capability || undefined}
             >
               <p className="pov__sub mono">{item.era}</p>
+              <p className="pov__note">{item.note}</p>
               <h2 className="pov__title">{item.title}</h2>
               <p className="pov__lead">{item.description}</p>
             </div>

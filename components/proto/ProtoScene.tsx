@@ -332,65 +332,68 @@ interface SurfaceParams {
 }
 
 /**
- * The five eras. Each one repaints the same real geography rather than
- * replacing it, so the continents are always the actual continents —
- * only the climate changes.
+ * The five geological eras, in order. Each one repaints the same real
+ * geography rather than replacing it, so the continents are always
+ * the actual continents — only the climate changes.
  */
 const ERAS: SurfaceParams[] = [
   {
-    // Pangaea — hot, dry, a young ocean
-    landTint: "#9a6b3a",
-    seaTint: "#16323f",
-    atmo: "#c99a5e",
-    landMix: 0.92,
-    seaMix: 0.72,
+    // Archeozoic — a cooling world: bare basalt, iron-green seas under
+    // a methane haze, and nothing alive but the first bacteria
+    landTint: "#7a5f4c",
+    seaTint: "#24453d",
+    atmo: "#c98a5c",
+    landMix: 0.95,
+    seaMix: 0.85,
     iceLatitude: 0.99,
     iceStrength: 0,
     city: 0,
   },
   {
-    // Age of oceans
-    landTint: "#47654f",
-    seaTint: "#0b3a5a",
-    atmo: "#7fb2d8",
-    landMix: 0.6,
-    seaMix: 0.62,
-    iceLatitude: 0.93,
-    iceStrength: 0.3,
-    city: 0,
-  },
-  {
-    // Ice age — caps most of the way to the equator
-    landTint: "#c3d4da",
-    seaTint: "#3b6a82",
-    atmo: "#bcdcf0",
+    // Proterozoic — oxygen rusts the land, algae turn the seas, and the
+    // first global glaciations reach down from the poles
+    landTint: "#8a5238",
+    seaTint: "#1b4d4f",
+    atmo: "#9cb9c6",
     landMix: 0.88,
+    seaMix: 0.7,
+    iceLatitude: 0.6,
+    iceStrength: 0.75,
+    city: 0,
+  },
+  {
+    // Paleozoic — life in the oceans, then forests across the land
+    landTint: "#2f5c38",
+    seaTint: "#0c3d5c",
+    atmo: "#7fb2d8",
+    landMix: 0.72,
+    seaMix: 0.5,
+    iceLatitude: 0.92,
+    iceStrength: 0.25,
+    city: 0,
+  },
+  {
+    // Mesozoic — a greenhouse world with no polar ice, warm shallow seas
+    landTint: "#6d7440",
+    seaTint: "#0f5566",
+    atmo: "#9cc6c4",
+    landMix: 0.86,
     seaMix: 0.55,
-    iceLatitude: 0.26,
-    iceStrength: 0.95,
+    iceLatitude: 0.99,
+    iceStrength: 0,
     city: 0,
   },
   {
-    // Age of life — close to the world as it is
-    landTint: "#3f8043",
-    seaTint: "#0d4560",
-    atmo: "#84c48f",
-    landMix: 0.32,
-    seaMix: 0.28,
-    iceLatitude: 0.88,
-    iceStrength: 0.4,
-    city: 0,
-  },
-  {
-    // Age of cities — lit on the night side
+    // Cenozoic — the world as it is: ice caps, and humans lighting the
+    // night side
     landTint: "#4c5763",
     seaTint: "#0f2a3a",
     atmo: "#8db1c7",
-    landMix: 0.42,
-    seaMix: 0.45,
-    iceLatitude: 0.9,
-    iceStrength: 0.3,
-    city: 1.7,
+    landMix: 0.18,
+    seaMix: 0.3,
+    iceLatitude: 0.88,
+    iceStrength: 0.45,
+    city: 1.5,
   },
 ];
 

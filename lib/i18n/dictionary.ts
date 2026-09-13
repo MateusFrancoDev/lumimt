@@ -7,6 +7,8 @@ export interface CapabilityCopy {
   id: string;
   /** The geological era this capability is shown as. */
   era: string;
+  /** What happened to the planet in that era, in one line. */
+  note: string;
   title: string;
   description: string;
 }
@@ -111,35 +113,40 @@ const pt: Dictionary = {
     items: [
       {
         id: "01",
-        era: "Pangeia",
+        era: "1ª Era · Arqueozoica",
+        note: "Resfriamento do planeta e surgimento da primeira bactéria unicelular.",
         title: "Desenvolvimento de Produto",
         description:
           "Produtos digitais desde o primeiro princípio: descoberta, arquitetura, interface, engenharia e lançamento. Assumimos o resultado, não um backlog.",
       },
       {
         id: "02",
-        era: "Era dos Oceanos",
+        era: "2ª Era · Proterozoica",
+        note: "Acúmulo de oxigênio na atmosfera e primeiras algas marinhas.",
         title: "Plataformas Web",
         description:
           "Aplicações e painéis operacionais de alta performance, para produtos em que velocidade, clareza e densidade de dados decidem se as pessoas continuam usando.",
       },
       {
         id: "03",
-        era: "Era do Gelo",
+        era: "3ª Era · Paleozoica",
+        note: "Explosão de vida nos oceanos; surgimento de anfíbios, insetos e florestas.",
         title: "SaaS",
         description:
           "Produtos multi-inquilino feitos para serem vendidos: autenticação, cobrança, permissões, analytics e toda a camada operacional que os mantém de pé.",
       },
       {
         id: "04",
-        era: "Era da Vida",
+        era: "4ª Era · Mesozoica",
+        note: "A era dos grandes dinossauros e fragmentação da Pangeia.",
         title: "IA e Automação",
         description:
           "Modelos de linguagem, recuperação de informação e automação aplicados onde eliminam trabalho real — medidos contra uma linha de base, não contra uma demonstração.",
       },
       {
         id: "05",
-        era: "Era das Cidades",
+        era: "5ª Era · Cenozoica",
+        note: "A era dos mamíferos e do surgimento do ser humano.",
         title: "Integração de Sistemas",
         description:
           "APIs, sistemas legados e serviços de terceiros conectados numa superfície única e coerente, com os modos de falha realmente tratados.",
@@ -242,35 +249,40 @@ const en: Dictionary = {
     items: [
       {
         id: "01",
-        era: "Pangaea",
+        era: "1st Era · Archeozoic",
+        note: "The planet cools and the first single-celled bacteria appear.",
         title: "Product Development",
         description:
           "Digital products from first principles: discovery, architecture, interface, engineering and release. We take ownership of the outcome, not of a backlog.",
       },
       {
         id: "02",
-        era: "Age of Oceans",
+        era: "2nd Era · Proterozoic",
+        note: "Oxygen builds up in the atmosphere; the first marine algae.",
         title: "Web Platforms",
         description:
           "High-performance applications and operational dashboards, for products where speed, clarity and data density decide whether people keep using them.",
       },
       {
         id: "03",
-        era: "Ice Age",
+        era: "3rd Era · Paleozoic",
+        note: "Life explodes in the oceans; amphibians, insects and forests appear.",
         title: "SaaS",
         description:
           "Multi-tenant products built to be sold: authentication, billing, permissions, analytics and the operational layer that keeps them alive.",
       },
       {
         id: "04",
-        era: "Age of Life",
+        era: "4th Era · Mesozoic",
+        note: "The age of the great dinosaurs, and Pangaea breaks apart.",
         title: "AI & Automation",
         description:
           "Language models, retrieval and automation applied where they remove real work — measured against a baseline instead of a demo.",
       },
       {
         id: "05",
-        era: "Age of Cities",
+        era: "5th Era · Cenozoic",
+        note: "The age of mammals, and the rise of humans.",
         title: "System Integration",
         description:
           "APIs, legacy systems and third-party services connected into a single coherent surface, with the failure modes actually handled.",
