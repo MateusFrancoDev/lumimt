@@ -1,0 +1,351 @@
+/* ------------------------------------------------------------------
+   The journey.
+
+   One tall scroll container, one pinned stage. The canvas is the
+   floor of the stage and every readable thing sits above it as HTML.
+------------------------------------------------------------------ */
+
+.journey {
+  position: relative;
+  height: 800vh;
+  background: var(--void);
+}
+
+.journey__stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: clip;
+  isolation: isolate;
+}
+
+.journey__canvas {
+  position: absolute !important;
+  inset: 0;
+  display: block;
+}
+
+/* Anchors: invisible, but real scroll destinations. */
+.journey__anchor {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  scroll-margin-top: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Overlay
+------------------------------------------------------------------ */
+
+.journey__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.journey__frame {
+  position: relative;
+  height: 100%;
+}
+
+.panel {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(2rem, 7vh, 5rem);
+  max-width: min(100%, 62ch);
+  display: grid;
+  gap: clamp(0.75rem, 2vh, 1.35rem);
+  justify-items: start;
+  opacity: 0;
+  translate: 0 22px;
+  visibility: hidden;
+  transition:
+    opacity 900ms var(--ease-out),
+    translate 900ms var(--ease-out),
+    visibility 0s linear 900ms;
+}
+
+.journey__overlay[data-chapter="entry"] .panel--entry,
+.journey__overlay[data-chapter="approach"] .panel--approach,
+.journey__overlay[data-chapter="arrival"] .panel--arrival,
+.journey__overlay[data-chapter="about"] .panel--about,
+.journey__overlay[data-chapter="capabilities"] .panel--capabilities,
+.journey__overlay[data-chapter="work"] .panel--work,
+.journey__overlay[data-chapter="contact"] .panel--contact {
+  opacity: 1;
+  translate: 0 0;
+  visibility: visible;
+  transition-delay: 0s, 0s, 0s;
+  pointer-events: auto;
+}
+
+/* Nothing is shown while we are inside the crossing. The darkness is
+   the content of that chapter. */
+.journey__overlay[data-chapter="horizon"] .panel {
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------
+   Type inside the overlay
+------------------------------------------------------------------ */
+
+.journey__display {
+  font-size: clamp(2.9rem, 11vw, 9rem);
+  line-height: 0.94;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.journey__statement {
+  font-size: clamp(1.8rem, 5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+  max-width: 20ch;
+}
+
+.journey__title {
+  font-size: clamp(1.6rem, 4.4vw, 3.2rem);
+  line-height: 1.04;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.journey__lead {
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 46ch;
+}
+
+.journey__copy {
+  display: grid;
+  gap: 1rem;
+  max-width: 52ch;
+  color: var(--text);
+}
+
+.journey__signal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--blue-light);
+}
+
+.journey__marker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-dim);
+}
+
+.journey__marker-id {
+  color: var(--blue-light);
+}
+
+.journey__sub {
+  letter-spacing: var(--tr-mono);
+}
+
+.journey__foot {
+  display: grid;
+  gap: clamp(1rem, 3vh, 1.75rem);
+  margin-top: clamp(0.5rem, 2vh, 1.25rem);
+}
+
+.journey__cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2.5rem;
+  margin-top: clamp(0.5rem, 2vh, 1.25rem);
+}
+
+.journey__email {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- the capability index: which moon is being observed --- */
+
+.journey__index {
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+  margin-top: clamp(0.5rem, 2vh, 1rem);
+  color: var(--text-faint);
+}
+
+.journey__index li {
+  display: flex;
+  gap: 0.9rem;
+  transition:
+    color var(--dur) var(--ease),
+    translate var(--dur) var(--ease-out);
+}
+
+.journey__index li[data-on="true"] {
+  color: var(--text-bright);
+  translate: 6px 0;
+}
+
+.journey__index li span {
+  color: var(--blue);
+}
+
+/* --- the project being flown past --- */
+
+.journey__project {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  width: 100%;
+}
+
+.journey__curve {
+  max-width: 420px;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------
+   Destination rail
+------------------------------------------------------------------ */
+
+.journey__rail {
+  display: none;
+  position: absolute;
+  left: calc(var(--gutter) * 0.4);
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 3;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.journey__rail-node {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition:
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    scale var(--dur) var(--ease);
+}
+
+.journey__rail-node[data-on="true"] {
+  background: var(--blue-light);
+  scale: 1.7;
+  box-shadow: 0 0 12px 2px rgba(141, 177, 199, 0.45);
+}
+
+/* ------------------------------------------------------------------
+   Wider viewports: the overlay uses the frame instead of stacking
+------------------------------------------------------------------ */
+
+@media (min-width: 900px) {
+  .journey__rail {
+    display: flex;
+  }
+
+  .panel {
+    max-width: min(52%, 70ch);
+  }
+
+  .panel--entry {
+    max-width: none;
+  }
+
+  .journey__foot {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: end;
+    gap: clamp(2rem, 6vw, 6rem);
+  }
+
+  .panel--work {
+    max-width: none;
+  }
+
+  .journey__project {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+    align-items: center;
+  }
+}
+
+/* On a phone the curve costs vertical space the copy needs more. */
+@media (max-width: 640px) {
+  .journey__curve {
+    display: none;
+  }
+
+  .panel {
+    bottom: clamp(1.5rem, 5vh, 3rem);
+  }
+}
+
+/* Short landscape windows: drop the largest type rather than let the
+   panel run off the bottom of the frame. */
+@media (max-height: 560px) {
+  .journey__display {
+    font-size: clamp(2rem, 7vw, 3.4rem);
+  }
+
+  .journey__statement {
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+  }
+
+  .journey__copy p:last-child,
+  .cue {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   The way in.
+
+   Shown only when the browser could run the journey but the visitor
+   has asked for reduced motion. The preference is honoured — nothing
+   moves until this is pressed — but it is not a dead end, and it is
+   not hidden.
+------------------------------------------------------------------ */
+
+.journey__enter {
+  position: fixed;
+  right: var(--gutter);
+  bottom: clamp(1.25rem, 4vh, 2.25rem);
+  z-index: 95;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  color: var(--text-dim);
+  background: linear-gradient(to left, rgba(8, 9, 12, 0.92), rgba(8, 9, 12, 0));
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.journey__enter:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.journey__enter .link__track {
+  width: clamp(24px, 4vw, 48px);
+}
+
+.journey__enter:is(:hover, :focus-visible) .link__track {
+  width: clamp(36px, 6vw, 72px);
+}
+
+@media (max-width: 640px) {
+  .journey__enter-label {
+    font-size: var(--fs-mono-sm);
+  }
+}

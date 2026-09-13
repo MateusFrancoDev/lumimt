@@ -1,0 +1,512 @@
+/* ------------------------------------------------------------------
+   HERO — the transit sequence.
+
+   Driven by custom properties written once per frame by HeroStage:
+   --p (approach progress), --star-d (resolved diameter) and --lum
+   (live luminance, dipped by the transit). No layout thrash, no lib.
+
+   The star does not fly at you. It RESOLVES: a dimensionless point
+   acquires a halo, then a limb, then an edge. The arrival is the
+   moment it stops being a point and becomes a body.
+------------------------------------------------------------------ */
+
+.hero {
+  position: relative;
+  height: 330svh;
+}
+
+.hero__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: clip;
+  isolation: isolate;
+}
+
+/* --- the void warms very slightly as we close distance --- */
+.hero__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    58% 46% at 50% 40%,
+    rgba(84, 126, 157, 0.28) 0%,
+    rgba(32, 55, 77, 0.14) 38%,
+    transparent 72%
+  );
+  opacity: calc(var(--emerge, 0) * var(--lum));
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Starfield — few, uneven, mostly below the threshold of attention.
+   Depth comes from size + blur + opacity, never from adding more.
+------------------------------------------------------------------ */
+
+.field {
+  position: absolute;
+  inset: -10% -5%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.field--far {
+  transform: translate3d(0, calc(var(--emerge) * -2vh), 0) scale(calc(1 + var(--emerge) * 0.06));
+  opacity: calc(var(--sky, 0) * (1 - var(--emerge) * 0.4));
+}
+
+.field--mid {
+  transform: translate3d(0, calc(var(--emerge) * -5vh), 0) scale(calc(1 + var(--emerge) * 0.16));
+  opacity: calc(var(--sky, 0) * (1 - var(--emerge) * 0.28));
+}
+
+.field--near {
+  transform: translate3d(0, calc(var(--emerge) * -11vh), 0) scale(calc(1 + var(--emerge) * 0.34));
+  opacity: calc(var(--sky, 0) * (1 - var(--emerge) * 0.14));
+}
+
+.star-point {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--silver);
+  /* Not a twinkle. A drift: sub-perceptible, long-cycle, unsynced. */
+  animation: drift var(--pt-dur, 16s) var(--ease) var(--pt-delay, 0s) infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    opacity: var(--pt-op, 0.3);
+  }
+  to {
+    opacity: calc(var(--pt-op, 0.3) * 1.7);
+  }
+}
+
+/* ------------------------------------------------------------------
+   The star itself
+------------------------------------------------------------------ */
+
+.system {
+  position: absolute;
+  left: 58%;
+  top: 36%;
+  width: 0;
+  height: 0;
+  filter: brightness(var(--lum));
+}
+
+.star,
+.star__halo,
+.transit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+
+/* Sized in px rather than scaled, so the disc stays optically crisp
+   at every distance instead of being a stretched raster. */
+.star {
+  width: var(--star-d);
+  height: var(--star-d);
+  background: radial-gradient(
+    circle at 50% 50%,
+    #ffffff 0%,
+    #ffffff 9%,
+    #eef5f9 20%,
+    #c8dde9 33%,
+    #93b7cd 46%,
+    rgba(84, 126, 157, 0.55) 58%,
+    rgba(84, 126, 157, 0.26) 70%,
+    rgba(84, 126, 157, 0.08) 82%,
+    rgba(84, 126, 157, 0) 92%
+  );
+  /* A star has no edge. The blur scales with the disc so the falloff
+     stays optically identical at every distance. */
+  filter: blur(calc(var(--star-d) * 0.018));
+}
+
+.star__halo {
+  width: calc(var(--star-d) * 4.2);
+  height: calc(var(--star-d) * 4.2);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(141, 177, 199, 0.22) 0%,
+    rgba(84, 126, 157, 0.1) 32%,
+    rgba(32, 55, 77, 0.05) 52%,
+    transparent 70%
+  );
+  opacity: var(--halo, 0);
+}
+
+/* The body that was never visible until it crossed the light. */
+/* Sized from BODY_RATIO in HeroStage, so what you see and what the
+   light curve computes are the same object. Small: a transit is a
+   fraction of the light, not an eclipse. */
+.transit {
+  width: calc(var(--star-d) * 0.075);
+  height: calc(var(--star-d) * 0.075);
+  background: #070a0e;
+  translate: calc(-50% + var(--transit-x, 0px)) calc(-50% + var(--star-d) * 0.1);
+  opacity: var(--transit-op, 0);
+  filter: blur(calc(var(--star-d) * 0.004));
+}
+
+/* ------------------------------------------------------------------
+   Hero content
+------------------------------------------------------------------ */
+
+/* Holds legibility where type crosses the light. Not decoration:
+   it is what lets the headline sit over the star at AA contrast. */
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    var(--void) 4%,
+    rgba(8, 9, 12, 0.88) 28%,
+    rgba(8, 9, 12, 0.5) 50%,
+    transparent 74%
+  );
+  pointer-events: none;
+}
+
+.hero__frame {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding-block: clamp(5.5rem, 12vh, 8rem) clamp(1.75rem, 4vh, 3rem);
+}
+
+.hero__center {
+  align-self: end;
+  display: grid;
+  gap: clamp(0.75rem, 2vh, 1.5rem);
+  justify-items: start;
+}
+
+.hero__signal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--blue-light);
+}
+
+.hero__headline {
+  font-size: var(--fs-display);
+  line-height: 0.94;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+  /* light sweeping across the type, left to right */
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.2s var(--ease-out);
+}
+
+.hero__foot {
+  display: grid;
+  gap: clamp(1.5rem, 4vh, 2.5rem);
+  grid-template-columns: 1fr;
+  margin-top: clamp(2rem, 6vh, 4rem);
+}
+
+.hero__meta {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--text-dim);
+}
+
+.hero__desc {
+  max-width: 34ch;
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  letter-spacing: var(--tr-tight);
+  color: var(--text);
+}
+
+.hero__cta-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* --- staged reveal, keyed off the approach phase --- */
+
+.layer {
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity var(--dur) var(--ease),
+    translate var(--dur) var(--ease);
+}
+
+.hero__stage[data-phase="0"] .layer--cue,
+.hero__stage[data-phase="1"] .layer--cue {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* The identity is on screen from the first frame. Darkness is a mood,
+   not a reason to leave a visitor unable to tell what this is. */
+.layer--meta {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.hero__stage[data-phase="3"] .layer--signal,
+.hero__stage[data-phase="4"] .layer--signal {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.hero__stage[data-phase="4"] .layer--reveal {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.hero__stage[data-phase="4"] .hero__headline {
+  clip-path: inset(0 0 0 0);
+}
+
+/* --- scroll cue --- */
+
+.cue {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--text-faint);
+}
+
+.cue__track {
+  position: relative;
+  width: 1px;
+  height: 42px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.cue__track::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 12px;
+  background: linear-gradient(to bottom, transparent, var(--blue-light));
+  animation: cue-fall 2.8s var(--ease) infinite;
+}
+
+@keyframes cue-fall {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(42px);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Mobile: same gesture, less travel, smaller field (item 26)
+------------------------------------------------------------------ */
+
+@media (max-width: 767px) {
+  .hero {
+    height: 270svh;
+  }
+
+  .system {
+    left: 50%;
+    top: 32%;
+  }
+
+  .hero__scrim {
+    background: linear-gradient(to top, var(--void) 12%, rgba(8, 9, 12, 0.8) 42%, transparent 70%);
+  }
+}
+
+@media (min-width: 900px) {
+  .hero__foot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: end;
+    gap: clamp(2rem, 5vw, 5rem);
+  }
+
+  .hero__cta-row {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Reduced motion: the star arrives already resolved, the transit
+   happens once, slowly. Nothing is lost, only the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    height: 100svh;
+  }
+
+  .cue {
+    display: none;
+  }
+
+  .hero__headline {
+    clip-path: none !important;
+  }
+
+  .layer {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+}
+
+/* --- the hero owns the void; the page below sits on the base --- */
+
+.hero {
+  background: var(--void);
+}
+
+/* the void resolves into the page as the stage unpins */
+.hero__stage::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 24vh;
+  background: linear-gradient(to bottom, transparent, var(--black));
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------
+   THE APPROACH — gravitational lensing.
+
+   Nothing here is a black disc with a glowing donut around it. What is
+   drawn is only what a mass does to the light behind it: rings of stars
+   dragged into arcs, inner ones spiralling in and being consumed, outer
+   ones sweeping outward past the viewer. Six transforms per frame.
+------------------------------------------------------------------ */
+
+.lens {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--lens-op, 1);
+  contain: layout paint;
+}
+
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 0;
+  height: 0;
+  transform: rotate(calc(var(--lp, 0) * var(--spin) * 1deg))
+    scale(calc(1 + var(--lp, 0) * var(--scd)));
+  opacity: calc(1 - var(--lp, 0) * var(--fade));
+  will-change: transform;
+}
+
+.ring-star {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--s);
+  height: 1.1px;
+  margin-left: calc(var(--s) / -2);
+  margin-top: -0.55px;
+  border-radius: 999px;
+  background: var(--silver);
+  /* inner rings brighten as they accelerate inward; values above 1 clamp */
+  opacity: calc(var(--o) * (1 + var(--lp, 0) * var(--bo, 0)));
+  /* rotate out to the ring, turn tangential, then stretch along the
+     tangent: light dragged around the mass, not a spinning sprite */
+  transform: rotate(var(--a)) translateX(var(--d)) rotate(90deg)
+    scaleX(calc(1 + var(--lp, 0) * var(--st)));
+}
+
+/* The object itself: nothing, growing. */
+.lens__core {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: var(--lens-core, 0px);
+  height: var(--lens-core, 0px);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    #000000 0%,
+    #000000 88%,
+    rgba(0, 0, 0, 0.5) 95%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Incomplete on purpose: an arc reads as bent light, a closed ring
+   reads as a science-fiction poster. */
+.lens__arc {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: calc(var(--lens-core, 0px) * 1.22);
+  height: calc(var(--lens-core, 0px) * 1.22);
+  translate: -50% -50%;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1.5px rgba(197, 220, 233, 0.85),
+    0 0 26px 2px rgba(141, 177, 199, 0.4),
+    0 0 70px 10px rgba(84, 126, 157, 0.18);
+  -webkit-mask-image: linear-gradient(
+    118deg,
+    transparent 20%,
+    #000 38%,
+    #000 60%,
+    transparent 78%
+  );
+  mask-image: linear-gradient(118deg, transparent 20%, #000 38%, #000 60%, transparent 78%);
+  opacity: var(--lens-arc, 0);
+}
+
+@media (max-width: 767px) {
+  .ring,
+  .lens__core,
+  .lens__arc {
+    top: 34%;
+  }
+}
+
+/* Reduced motion: no approach at all. The page opens on the far side,
+   already emerged, with the transit in place. */
+@media (prefers-reduced-motion: reduce) {
+  .lens {
+    display: none;
+  }
+}
+
+/* Crossing the horizon. The frame closes in instead of a shape growing
+   to fill it — a black disc expanding across the viewport is how this
+   effect ends up looking like a planet. */
+.lens__void {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) calc(var(--vignette, 115) * 1%),
+    #000000 calc(var(--vignette, 115) * 1% + 16%)
+  );
+  pointer-events: none;
+}
+
+.lens__blackout {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  opacity: var(--blackout, 0);
+  pointer-events: none;
+}

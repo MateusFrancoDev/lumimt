@@ -1,0 +1,810 @@
+/* ------------------------------------------------------------------
+   Prototype chrome. Debug only — deliberately plain.
+------------------------------------------------------------------ */
+
+.proto {
+  position: relative;
+  background: #05070a;
+  --step: 42svh;
+  /* One gap between each pair of stops, plus a viewport for the last
+     stop to occupy. `--gaps` is written by the component from the
+     path itself, so adding a project cannot leave the page a stop
+     short. */
+  height: calc(var(--gaps, 12) * var(--step) + 100svh);
+}
+
+/* Laid over the section rather than stacked before or after it. A
+   negative margin was the obvious alternative and it is a trap: it
+   collapses the sticky element's margin box, so the stage never
+   unsticks and paints straight over the footer. */
+.proto__steps {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Turning snapping on before the 3D section has its real height makes
+   Chrome re-snap to the far end of a document that just grew by twelve
+   viewports. It is enabled from the client once the height is settled. */
+html.snap-ready {
+  scroll-snap-type: y mandatory;
+}
+
+/* Snapping has to stand down twice.
+
+   While the index is open, because the journey scrolls underneath it
+   otherwise — and hiding overflow on <body> alone never stopped it,
+   since the document element is the scroller here.
+
+   And while a form field has focus, because a soft keyboard shrinks
+   the viewport, every `svh` length in this file changes with it, and
+   the page re-snaps to a different stop with the message half typed. */
+html.snap-ready.nav-locked,
+html.snap-ready.form-focus {
+  scroll-snap-type: none;
+}
+
+/* The gutter is reserved site-wide (see base.css), so hiding the
+   overflow here costs no width and shifts nothing. */
+html.nav-locked {
+  overflow: hidden;
+}
+
+/* The snap targets. `scroll-snap-stop: always` is the whole trick: it
+   forbids a single gesture from skipping past a stop, which is what
+   turns one scroll into exactly one section. */
+.proto__step {
+  /* Shorter than the viewport on purpose: a normal wheel gesture has
+     to clear the halfway mark, or mandatory snapping just pulls it
+     back. scroll-snap-stop then forbids skipping more than one. */
+  height: var(--step);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Without this the scrollable range is one viewport short of a whole
+   number of steps, and the progress a step is worth stops matching
+   1/(stops-1) — which silently skips a stop. */
+
+
+.proto__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  width: 100%;
+  overflow: clip;
+  z-index: 1;
+}
+
+.proto__canvas {
+  position: absolute !important;
+  inset: 0;
+  display: block;
+}
+
+.proto__booting,
+.proto__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text);
+  background: #05070a;
+  z-index: 3;
+}
+
+.proto__error p:first-child {
+  color: #d98b8e;
+}
+
+.proto__error code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--blue-light);
+}
+
+.proto__hud {
+  position: fixed;
+  top: auto;
+  bottom: 1rem;
+  right: 1rem;
+  /* above the site header, which is z-index 90 */
+  z-index: 200;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 1rem;
+  background: rgba(5, 7, 10, 0.92);
+  border-left: 2px solid #547e9d;
+  color: #8db1c7;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.proto__hud span {
+  color: #ffffff;
+}
+
+
+
+/* The crossing. Sits above the canvas and below the copy. */
+.proto__blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.proto__anchor {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  scroll-margin-top: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Overlay copy
+------------------------------------------------------------------ */
+
+.pov {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  /* One definition of where the copy column sits and how wide it is,
+     because the project image has to line up against it. */
+  --copy-w: min(calc(100% - var(--gutter) * 2), 52ch);
+  --copy-bottom: clamp(2rem, 8vh, 5rem);
+}
+
+.pov__panel {
+  position: absolute;
+  left: var(--gutter);
+  bottom: var(--copy-bottom);
+  width: var(--copy-w);
+  display: grid;
+  gap: clamp(0.6rem, 1.6vh, 1.1rem);
+  justify-items: start;
+  opacity: 0;
+  translate: 0 18px;
+  visibility: hidden;
+  transition:
+    opacity 700ms var(--ease-out),
+    translate 700ms var(--ease-out),
+    visibility 0s linear 700ms;
+}
+
+.pov[data-phase="signal"] .pov__panel--signal,
+.pov[data-phase="about"] .pov__panel--about,
+.pov[data-phase="capabilities"] .pov__panel--capabilities,
+.pov[data-phase="projects"] .pov__panel--projects,
+.pov[data-phase="contact"] .pov__panel--contact {
+  opacity: 1;
+  translate: 0 0;
+  visibility: visible;
+  transition-delay: 0s;
+  pointer-events: auto;
+}
+
+.pov__marker {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--text-dim);
+}
+
+.pov__id {
+  color: var(--blue-light);
+}
+
+.pov__sub {
+  color: var(--text-dim);
+}
+
+.pov__display {
+  font-size: clamp(2.6rem, 9vw, 6.5rem);
+  line-height: 0.94;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.pov__statement {
+  /* Bound by the height as well as the width. On a wide, short
+     desktop — 1280x720, a very common laptop — a size chosen from the
+     width alone made the contact panel taller than the screen, and it
+     grew upward until the first lines were behind the header. The cap
+     is unchanged, so a tall screen looks exactly as it did. */
+  font-size: clamp(1.7rem, min(4.6vw, 5.6svh), 3.4rem);
+  line-height: 1.05;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.pov__title {
+  font-size: clamp(1.5rem, 4vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.pov__lead {
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 46ch;
+  text-shadow: 0 1px 14px rgba(5, 7, 10, 0.9);
+}
+
+.pov__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.5rem;
+  color: var(--text-dim);
+}
+
+.pov__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  color: var(--text-dim);
+}
+
+.pov__index {
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-faint);
+}
+
+.pov__index li {
+  display: flex;
+  gap: 0.8rem;
+  transition:
+    color 400ms var(--ease),
+    translate 400ms var(--ease-out);
+}
+
+.pov__index li[data-on="true"] {
+  color: var(--text-bright);
+  translate: 6px 0;
+}
+
+.pov__index li span {
+  color: var(--blue);
+}
+
+.pov__cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 2.5rem;
+}
+
+.pov__email {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------
+   The link to the project itself
+
+   There used to be a framed screenshot here. Two of the three
+   captures were white web pages, and dropped into a black sky they
+   read as lit rectangles stuck onto the scene — no amount of grading
+   fully fixed that. The live address is better evidence anyway, and
+   it costs the composition nothing.
+------------------------------------------------------------------ */
+
+.pov__visit {
+  margin-top: 0.35rem;
+  color: var(--blue-light);
+}
+
+.pov__visit .link__label {
+  letter-spacing: var(--tr-mono);
+}
+
+.pov__visit:is(:hover, :focus-visible) .link__label {
+  color: var(--text-bright);
+}
+
+/* ------------------------------------------------------------------
+   The invitation to scroll.
+
+   The first frame is a black sky with a black hole in it, and nothing
+   about it says the page continues for twelve more viewports. This is
+   the only thing that does: a line with light falling down it, loud
+   on the first stop, a quiet mark from there on, gone at the last.
+------------------------------------------------------------------ */
+
+.pov__scroll {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 3vh, 1.9rem);
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  color: var(--text-dim);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 700ms var(--ease-out);
+}
+
+.pov[data-hint="start"] .pov__scroll {
+  opacity: 1;
+}
+
+.pov[data-hint="more"] .pov__scroll {
+  opacity: 0.4;
+}
+
+.pov__scroll-label {
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 600ms var(--ease-out),
+    translate 600ms var(--ease-out);
+}
+
+.pov[data-hint="start"] .pov__scroll-label {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.pov__rail {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 44px;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--line-strong) 22%,
+    var(--line-strong) 78%,
+    transparent
+  );
+}
+
+.pov__pulse {
+  position: absolute;
+  inset-inline: -1px;
+  top: 0;
+  height: 14px;
+  background: linear-gradient(to bottom, transparent, var(--blue-light));
+  animation: pov-fall 2.6s var(--ease) infinite;
+}
+
+@keyframes pov-fall {
+  0% {
+    translate: 0 -16px;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 44px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pov__pulse {
+    animation: none;
+    translate: 0 15px;
+  }
+}
+
+/* Below this the copy column reaches the middle of the frame, so the
+   scroll mark needs its own room under it. */
+@media (max-width: 1100px) and (min-width: 861px) {
+  .pov {
+    --copy-bottom: clamp(5rem, 13vh, 7.5rem);
+  }
+}
+
+/* A short desktop window. The contact panel is the tallest thing on
+   the site — a heading, a lead and a whole form — and on a 720px-high
+   screen it has to give some vertical space back or it cannot be read
+   without scrolling. Only the spacing yields; nothing is resized away
+   and nothing is hidden. */
+@media (min-width: 861px) and (max-height: 840px) {
+  .pov {
+    --copy-bottom: clamp(1.5rem, 4.5vh, 3rem);
+  }
+
+  .pov__panel {
+    gap: clamp(0.35rem, 1.05svh, 1.1rem);
+  }
+
+  .pov__form {
+    gap: clamp(0.4rem, 1.1svh, 0.7rem);
+    margin-top: 0.2rem;
+  }
+
+  .pov__field textarea {
+    min-height: clamp(3rem, 8svh, 4.6rem);
+  }
+
+  .pov__send {
+    margin-top: 0.25rem;
+  }
+
+  .pov__direct {
+    margin-top: 0.2rem;
+  }
+}
+
+/* Shorter still — a laptop at 640px, or a window that is not
+   maximised. The touch minimum on the fields is relaxed here because
+   this branch only applies to a wide window, which means a pointer. */
+@media (min-width: 861px) and (max-height: 700px) and (pointer: fine) {
+  .pov__panel {
+    gap: clamp(0.22rem, 0.75svh, 0.6rem);
+  }
+
+  /* the heading and the leading give up a little more, so the form
+     below them stays whole */
+  .pov__statement {
+    font-size: clamp(1.4rem, min(4.6vw, 4.8svh), 2.2rem);
+  }
+
+  .pov__lead {
+    line-height: 1.42;
+  }
+
+  .pov__form {
+    gap: 0.4rem;
+  }
+
+  .pov__field input,
+  .pov__field textarea {
+    min-height: 34px;
+    padding-block: 0.3rem;
+  }
+
+  .pov__field textarea {
+    min-height: 2.7rem;
+  }
+
+  /* the address row is a pointer target here, not a thumb target */
+  .pov__direct a,
+  .pov__copy {
+    min-height: 32px;
+  }
+
+  .pov__form {
+    margin-top: 0;
+  }
+
+  .pov__send,
+  .pov__direct {
+    margin-top: 0.1rem;
+  }
+
+  .pov {
+    --copy-bottom: clamp(0.5rem, 1.8vh, 1.2rem);
+  }
+}
+
+/* The backstop, at every desktop height: the copy may not grow past
+   the header. If a window is so short that even the tightened spacing
+   does not fit, the panel scrolls inside itself — unread text behind
+   the header is worse than a scrollbar nobody needs. */
+@media (min-width: 861px) {
+  .pov__panel {
+    max-height: calc(100svh - var(--bar) - var(--copy-bottom) - 0.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .pov__panel::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   The phone layout.
+
+   Under 860px the copy runs the full width, so the screen is a column
+   and not two: header, then the body with the middle of the screen to
+   itself, then the section's copy along the bottom.
+
+   The copy is anchored to the bottom of the column and the sky takes
+   everything left over, which is what puts the body in the middle of
+   the frame rather than crushed under the header. The panel is capped
+   so that a tall one — the contact form on a 568px-high phone —
+   scrolls inside itself instead of growing upward past the top of the
+   viewport, which is how it used to end up 75px off the screen, under
+   the header, unreadable.
+
+   The cap is also the floor for the sky: the band the camera frames
+   against is whatever is left between the header and the copy, so
+   guaranteeing the copy cannot take it all is what guarantees the
+   body a place to be.
+------------------------------------------------------------------ */
+@media (max-width: 860px) {
+  .pov {
+    display: grid;
+    grid-template-columns: 1fr;
+    /* sky takes the slack, then the copy, then the scroll mark — which
+       gets a row of its own rather than floating over the bottom edge,
+       because a panel that scrolls inside itself fills its own box and
+       its text would otherwise run underneath the mark */
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    --sky: clamp(7rem, 23svh, 13rem);
+    --mark: clamp(4.25rem, 10svh, 5.5rem);
+  }
+
+  /* The copy owns the lower part of a phone screen, and whatever is
+     behind it is a lit planet. A scrim under the text — behind the
+     panels, above the canvas — is what keeps it readable without
+     dimming the whole scene. */
+  .pov::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 66%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      rgba(5, 7, 10, 0.94) 10%,
+      rgba(5, 7, 10, 0.72) 44%,
+      rgba(5, 7, 10, 0) 100%
+    );
+  }
+
+  /* All five panels live in the same cell, and a hidden one still has
+     a height — so leaving them all in flow sized the row to the
+     tallest panel on the site (the contact form) and every other
+     section inherited its gap. Only the panel on screen is in flow;
+     the rest are taken out of it, pinned to the same bottom edge so
+     the one fading out does not jump while it goes. */
+  .pov__panel {
+    position: absolute;
+    grid-row: -2;
+    grid-column: 1 / -1;
+    inset: auto 0 0 0;
+    align-self: end;
+    width: auto;
+    margin-inline: var(--gutter);
+    /* never so tall that the body loses its band */
+    max-height: calc(100svh - var(--bar) - var(--sky) - var(--mark));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: clamp(0.75rem, 2.5svh, 1.5rem);
+    scrollbar-width: none;
+  }
+
+  .pov__panel[data-on="true"] {
+    position: relative;
+    inset: auto;
+  }
+
+  .pov__panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The projects stop has two pieces of art, not one: the ring the
+     camera is looking at, and the project's own image. The image gets
+     a row directly above the copy, so the three read as one block
+     along the bottom — sky, then image, then words, with no gap
+     opening between them — and the planet keeps the middle of the
+     screen like every other section. */
+  /* out of the corner, into its own row along the bottom */
+  .pov__scroll {
+    position: relative;
+    grid-row: -1;
+    grid-column: 1 / -1;
+    justify-self: center;
+    align-self: end;
+    inset: auto;
+    translate: none;
+    padding-bottom: clamp(0.75rem, 2.5svh, 1.4rem);
+  }
+  /* The ring markers are a pointer affordance: too small to hit with
+     a thumb, and unnecessary here, since on a phone the scroll moves
+     between projects one at a time. */
+  .pov__hint {
+    display: none;
+  }
+
+  .proto__hud {
+    font-size: 10px;
+    padding: 0.5rem 0.7rem;
+  }
+}
+
+/* A short phone in landscape has no room for a band of sky at all;
+   the copy takes what it needs and the body is framed into whatever
+   is left. */
+@media (max-width: 860px) and (max-height: 520px) {
+  .pov {
+    --sky: 4rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Contact form. No backend — it hands the message to the visitor's
+   own mail client, which works from the first day the site is live.
+------------------------------------------------------------------ */
+
+.pov__form {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 44ch;
+  margin-top: 0.4rem;
+}
+
+.pov__row {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.pov__field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.pov__field span {
+  color: var(--text-dim);
+}
+
+.pov__field input,
+.pov__field textarea {
+  width: 100%;
+  /* 44px of height before the hairline: the line is the only visible
+     edge, so the target has to be built out of padding */
+  min-height: 44px;
+  padding: 0.6rem 0.1rem;
+  font: inherit;
+  font-size: var(--fs-body);
+  color: var(--text-bright);
+  background: transparent;
+  border: 0;
+  /* a line, not a box: the same hairline language as the rest */
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  transition: border-color var(--dur-fast) var(--ease);
+  resize: none;
+}
+
+.pov__field textarea {
+  line-height: 1.5;
+  min-height: 4.6rem;
+}
+
+.pov__field input::placeholder,
+.pov__field textarea::placeholder {
+  /* faint is a decorative value; a placeholder has to be read */
+  color: var(--text-dim);
+}
+
+.pov__field input:focus,
+.pov__field textarea:focus {
+  outline: none;
+  border-bottom-color: var(--blue-light);
+}
+
+.pov__send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.75rem;
+  margin-top: 0.6rem;
+}
+
+/* the note beside the send control, and the label before the address:
+   supporting text, but still text somebody has to read */
+.pov__send .faint,
+.pov__direct .faint {
+  color: var(--text-dim);
+}
+
+.pov__error {
+  color: #d98b8e;
+}
+
+.pov__hint {
+  color: var(--blue-light);
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 640px) {
+  .pov__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The address, always on screen. A mailto: that opens nothing is
+   indistinguishable from a broken form, so the fallback is never
+   more than one tap away. */
+.pov__direct {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.9rem;
+  margin-top: 0.5rem;
+  color: var(--text-dim);
+}
+
+.pov__direct a {
+  color: var(--blue-light);
+  border-bottom: 1px solid var(--line-blue);
+  /* a 17px line of mono type is not a tappable address */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.pov__direct a:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.pov__copy {
+  color: var(--text-dim);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.pov__copy:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.pov__sent {
+  color: var(--blue-light);
+  max-width: 44ch;
+}
+
+/* ------------------------------------------------------------------
+   Language toggle — shows both, lights the active one
+------------------------------------------------------------------ */
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding-inline: 0.35rem;
+  color: var(--text-dim);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.lang:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.lang__on {
+  color: var(--blue-light);
+}
+
+.lang__sep {
+  width: 10px;
+  height: 1px;
+  background: var(--line-strong);
+}
+

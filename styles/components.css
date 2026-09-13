@@ -1,0 +1,710 @@
+/* ------------------------------------------------------------------
+   LUMIMT component language.
+
+   Deliberately not a UI kit (item 11): no cards, no pills, no badges,
+   no rounded rectangles. The vocabulary is hairlines, luminance,
+   occlusion and travel.
+------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   Signal — the smallest unit of the brand. A point that is barely
+   there, announcing itself on a long cycle.
+------------------------------------------------------------------ */
+
+.signal {
+  position: relative;
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--blue-light);
+  flex: none;
+}
+
+.signal::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 1px solid var(--line-blue);
+  animation: signal-pulse 4.2s var(--ease) infinite;
+}
+
+@keyframes signal-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SectionMarker — 01 / ABOUT, with a rule that runs out of light
+------------------------------------------------------------------ */
+
+.marker {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+  margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.marker__id {
+  color: var(--blue-light);
+}
+
+.marker__label {
+  color: var(--text-dim);
+}
+
+.marker__rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line-strong), transparent);
+}
+
+/* ------------------------------------------------------------------
+   DetectionLine — a divider that carries light instead of drawing a
+   border. Brightest at centre, because the light source is above.
+------------------------------------------------------------------ */
+
+.detection {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--line-strong) 50%, transparent);
+  opacity: var(--lum);
+}
+
+/* ------------------------------------------------------------------
+   LumimtLink — the CTA. Type, a track, an arrow held at a distance.
+   On interaction a light travels the track and the arrow steps away.
+   Hover and keyboard focus behave identically (item 30).
+------------------------------------------------------------------ */
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(0.85rem, 2vw, 1.5rem);
+  min-height: 44px; /* touch target */
+  color: var(--text-bright);
+}
+
+.link__label {
+  transition: color var(--dur-fast) var(--ease);
+  white-space: nowrap;
+}
+
+/* The rule grows on hover by scaling, not by changing its width.
+   Width is a layout property: inside a wrapping flex row — the send
+   control sits next to its note — a wider rule pushed the note onto a
+   second line, which moved the control out from under the pointer,
+   which shrank it again, which pulled the note back up. With a 620ms
+   transition on each step that loop reads as the screen shaking.
+   A transform changes nothing about the layout, so it cannot. */
+.link__track {
+  position: relative;
+  flex: none;
+  height: 1px;
+  width: clamp(56px, 14vw, 210px);
+  background: var(--line-strong);
+  overflow: hidden;
+  transform-origin: left center;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.link__track::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 56px;
+  background: linear-gradient(90deg, transparent, var(--blue-light), transparent);
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.link__arrow {
+  color: var(--blue-light);
+  transition: translate var(--dur) var(--ease-out);
+  flex: none;
+}
+
+.link:is(:hover, :focus-visible) .link__track {
+  transform: scaleX(1.19);
+}
+
+.link:is(:hover, :focus-visible) .link__track::after {
+  animation: sweep 900ms var(--ease-out);
+}
+
+.link:is(:hover, :focus-visible) .link__arrow {
+  translate: 8px -8px;
+}
+
+.link:is(:hover, :focus-visible) .link__label {
+  color: #fff;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(260%);
+    opacity: 0;
+  }
+}
+
+/* A quieter variant for secondary destinations */
+.link--sm {
+  gap: 0.75rem;
+}
+
+.link--sm .link__track {
+  width: clamp(28px, 5vw, 56px);
+}
+
+.link--sm:is(:hover, :focus-visible) .link__track {
+  transform: scaleX(1.4);
+}
+
+/* ------------------------------------------------------------------
+   Reveal — scroll-driven entrance. Content is present in the DOM and
+   readable without JS; this only removes the travel.
+------------------------------------------------------------------ */
+
+.reveal {
+  opacity: 0;
+  translate: 0 18px;
+  transition:
+    opacity 1s var(--ease-out),
+    translate 1s var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal[data-visible="true"],
+[data-visible="true"] .reveal {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Ambient — the star does not leave when the hero ends. It becomes
+   the light source for every section below it, always from above.
+------------------------------------------------------------------ */
+
+.ambient {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  height: 78vh;
+  background: radial-gradient(
+    52% 100% at 50% -4%,
+    rgba(84, 126, 157, 0.16) 0%,
+    rgba(32, 55, 77, 0.08) 40%,
+    transparent 72%
+  );
+  opacity: calc(var(--ambient, 0) * var(--lum));
+  transition: opacity 1.2s var(--ease);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ------------------------------------------------------------------
+   Header
+------------------------------------------------------------------ */
+
+.header {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  z-index: 90;
+  transition: background var(--dur) var(--ease);
+}
+
+.header[data-scrolled="true"] {
+  background: linear-gradient(to bottom, rgba(8, 9, 12, 0.88), rgba(8, 9, 12, 0));
+  backdrop-filter: blur(6px);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: clamp(1.1rem, 2.4vw, 1.7rem);
+}
+
+/* With the menu open the bar rises above it — the wordmark, the
+   language switch and the close control have to stay put, or opening
+   the menu costs you the way back out — and it drops its own
+   background, which would otherwise smear a band across the overlay. */
+.header[data-open="true"] {
+  z-index: 120;
+  background: none;
+  backdrop-filter: none;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  /* the bar is already 44px of control plus padding, so giving the
+     wordmark the full height costs no header height at all */
+  min-height: 44px;
+  gap: 0.35rem;
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+  letter-spacing: 0.28em;
+  font-weight: 500;
+  color: var(--text-bright);
+  text-transform: uppercase;
+}
+
+/* The dot inside the wordmark dims when the transit crosses. The
+   logo is wired to the same light curve as the star. */
+.wordmark__signal {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--blue-light);
+  opacity: calc(var(--lum) * var(--lum) * var(--lum));
+  transform: translateY(-0.55em);
+}
+
+/* ------------------------------------------------------------------
+   Desktop index — a horizontal row; the phone gets the overlay
+------------------------------------------------------------------ */
+
+.nav {
+  display: none;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2.75rem);
+}
+
+.nav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--text-dim);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.nav__num {
+  color: var(--blue);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.nav__item:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.nav__item:is(:hover, :focus-visible) .nav__num {
+  color: var(--blue-light);
+}
+
+.header__tools {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.25rem);
+}
+
+@media (min-width: 900px) {
+  .nav {
+    display: flex;
+  }
+
+  /* one language switch on screen, not two */
+  .header__tools {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   The menu.
+
+   One fullscreen overlay at every width, opened by one typographic
+   trigger. No drawer, no hamburger box, no horizontal nav that only
+   exists above some breakpoint — the index is a page of its own, and
+   it behaves the same on a phone and on a monitor.
+------------------------------------------------------------------ */
+
+.menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  /* the label and the glyph are both small; the padding is what makes
+     the control a thumb-sized target */
+  padding-inline: 0.4rem;
+  margin-inline-end: -0.4rem;
+  color: var(--text-dim);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.menu-btn:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+.menu-btn__label {
+  /* the word changes between "Menu" and "Fechar", and the glyph must
+     not shuffle sideways when it does */
+  min-width: 5ch;
+  text-align: right;
+}
+
+.menu-btn__glyph {
+  display: grid;
+  gap: 5px;
+  width: 20px;
+}
+
+.menu-btn__glyph span {
+  height: 1px;
+  background: currentColor;
+  transition:
+    transform var(--dur) var(--ease-out),
+    width var(--dur) var(--ease-out);
+}
+
+/* the second rule is short until the menu is open, when the two cross */
+.menu-btn__glyph span:last-child {
+  width: 12px;
+  justify-self: end;
+}
+
+.menu-btn[data-open="true"] .menu-btn__glyph span:first-child {
+  transform: translateY(3px) rotate(45deg);
+}
+
+.menu-btn[data-open="true"] .menu-btn__glyph span:last-child {
+  width: 20px;
+  transform: translateY(-3px) rotate(-45deg);
+}
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(6, 8, 11, 0.96);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 520ms var(--ease-out),
+    visibility 0s linear 520ms;
+}
+
+.menu[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.menu__inner {
+  width: 100%;
+  display: grid;
+  gap: clamp(2.5rem, 8vh, 5rem);
+  padding-block: clamp(6rem, 16vh, 9rem) clamp(2rem, 6vh, 3.5rem);
+}
+
+.menu__list {
+  list-style: none;
+  display: grid;
+  /* every row carries its own rule underneath, so the list needs one
+     over the top to close as a block rather than trail off */
+  border-top: 1px solid var(--line);
+}
+
+.menu__link {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: clamp(1rem, 4vw, 2.5rem);
+  padding-block: clamp(0.7rem, 2.2vh, 1.4rem);
+  color: var(--text);
+  opacity: 0;
+  translate: 0 22px;
+  transition:
+    color var(--dur) var(--ease),
+    opacity 560ms var(--ease-out),
+    translate 560ms var(--ease-out);
+}
+
+.menu[data-open="true"] .menu__link {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: calc(110ms + var(--i, 0) * 65ms);
+}
+
+.menu__num {
+  color: var(--blue);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.menu__word {
+  font-size: clamp(2.2rem, 7vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: var(--tr-display);
+  font-weight: 500;
+  /* the word carries the state; the number and the rule follow it */
+  transition: translate var(--dur) var(--ease-out);
+}
+
+/* A hairline that runs the width of the row and lights up from the
+   left — the same line language as the rest of the site, and the only
+   decoration the menu gets. */
+.menu__rule {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: var(--line);
+}
+
+.menu__rule::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--blue-light);
+  transition: width var(--dur) var(--ease-out);
+}
+
+.menu__link:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+  outline: none;
+}
+
+.menu__link:is(:hover, :focus-visible) .menu__word {
+  translate: 10px 0;
+}
+
+.menu__link:is(:hover, :focus-visible) .menu__num {
+  color: var(--blue-light);
+}
+
+.menu__link:is(:hover, :focus-visible) .menu__rule::after {
+  width: 100%;
+}
+
+.menu__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 2.5rem;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 500ms var(--ease-out);
+}
+
+.menu[data-open="true"] .menu__foot {
+  opacity: 1;
+  transition-delay: 420ms;
+}
+
+.menu__foot a {
+  color: var(--blue-light);
+  /* padding rather than min-height: a 44px box inside a wrapping flex
+     row drags its neighbours off the baseline */
+  padding-block: 0.7rem;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.menu__foot a:is(:hover, :focus-visible) {
+  color: var(--text-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu__link,
+  .menu__foot {
+    transition-duration: 1ms;
+    translate: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SignalCursor — desktop, fine pointers only. A faint companion
+   point, never a replacement for the system cursor.
+------------------------------------------------------------------ */
+
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 1px solid var(--line-blue);
+  pointer-events: none;
+  z-index: 200;
+  opacity: 0;
+  transition:
+    opacity 300ms var(--ease),
+    width 300ms var(--ease),
+    height 300ms var(--ease),
+    margin 300ms var(--ease),
+    border-color 300ms var(--ease);
+}
+
+.cursor[data-active="true"] {
+  opacity: 1;
+}
+
+.cursor[data-hot="true"] {
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-color: rgba(141, 177, 199, 0.75);
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cursor {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Grain — observation noise. Two jobs: it kills the banding that
+   near-black gradients produce on 8-bit displays, and it gives every
+   surface the texture of something being measured rather than drawn.
+------------------------------------------------------------------ */
+
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------------
+   Destination light — the body you arrive at, at the head of every
+   section rule. Same construction as the star in the hero, small.
+------------------------------------------------------------------ */
+
+.marker__body {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    #ffffff 0%,
+    #e2eef4 26%,
+    #9fc0d4 48%,
+    rgba(84, 126, 157, 0.4) 66%,
+    rgba(84, 126, 157, 0) 82%
+  );
+  box-shadow: 0 0 20px 4px rgba(84, 126, 157, 0.28);
+  opacity: 0.25;
+  scale: 0.5;
+  transition:
+    opacity 1.1s var(--ease-out),
+    scale 1.1s var(--ease-out);
+}
+
+.marker[data-visible="true"] .marker__body {
+  opacity: calc(1 * var(--lum));
+  scale: 1;
+}
+
+/* ------------------------------------------------------------------
+   Trajectory — the route, with a node per destination. Visited nodes
+   stay lit: this is a map of where you have been, not a scrollbar.
+------------------------------------------------------------------ */
+
+.trajectory {
+  display: none;
+  position: fixed;
+  left: calc(var(--gutter) * 0.4);
+  top: 50%;
+  translate: 0 -50%;
+  width: 9px;
+  height: 38vh;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.trajectory__line {
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--line) 12%,
+    var(--line) 88%,
+    transparent
+  );
+}
+
+.trajectory__craft {
+  position: absolute;
+  left: 4px;
+  top: calc(var(--journey, 0) * 100%);
+  width: 1px;
+  height: 26px;
+  margin-top: -13px;
+  background: linear-gradient(to bottom, transparent, var(--blue-light), transparent);
+}
+
+.trajectory__node {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--i) / 3 * 100%);
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition:
+    background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    scale var(--dur) var(--ease);
+}
+
+.trajectory__node[data-reached="true"] {
+  background: var(--blue-light);
+}
+
+.trajectory__node[data-active="true"] {
+  scale: 1.6;
+  box-shadow: 0 0 12px 2px rgba(141, 177, 199, 0.5);
+}
+
+@media (min-width: 1200px) {
+  .trajectory {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trajectory__craft {
+    display: none;
+  }
+}

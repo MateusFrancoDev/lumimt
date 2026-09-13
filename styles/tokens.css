@@ -1,0 +1,85 @@
+/* ------------------------------------------------------------------
+   LUMIMT — design tokens
+   The palette is deliberately narrow: deep void, one metallic blue
+   signature, silver for information. Everything else is luminance.
+------------------------------------------------------------------ */
+
+:root {
+  /* --- surfaces --- */
+  --void: #08090c;          /* deep space, hero */
+  --black: #111418;         /* base surface */
+  --black-raised: #161a1f;  /* barely-there elevation */
+
+  /* --- signature --- */
+  --blue: #547e9d;
+  --blue-light: #8db1c7;
+  --blue-deep: #20374d;
+
+  /* --- information --- */
+  --silver: #c5c9ca;
+  --text-bright: #e9edee;
+  --text: rgba(197, 201, 202, 0.82);
+  --text-dim: rgba(197, 201, 202, 0.5);
+  --text-faint: rgba(197, 201, 202, 0.3);
+
+  /* --- lines: hairlines only, never borders --- */
+  --line: rgba(197, 201, 202, 0.12);
+  --line-strong: rgba(197, 201, 202, 0.22);
+  --line-blue: rgba(141, 177, 199, 0.38);
+  /* the metal edge around a project capture */
+  --frame: #4e7fa8;
+
+  /* --- layout --- */
+  --gutter: clamp(1.25rem, 5vw, 5rem);
+  /* Height of the fixed header bar: a 44px control plus its padding.
+     Declared once here because the phone layout has to reserve it and
+     the scene has to stay out from under it. */
+  --bar: calc(44px + 2 * clamp(1.1rem, 2.4vw, 1.7rem));
+  --shot-radius: clamp(14px, 2vw, 28px);
+  --max: 1680px;
+  --section-y: clamp(6rem, 13vw, 11rem);
+
+  /* --- type scale, fluid by design (item 24) --- */
+  --fs-display: clamp(3.1rem, 12.5vw, 10.5rem);
+  --fs-statement: clamp(1.9rem, 5.6vw, 4.6rem);
+  --fs-index: clamp(2rem, 6vw, 4.75rem);
+  --fs-h3: clamp(1.15rem, 2vw, 1.6rem);
+  --fs-lead: clamp(1rem, 1.35vw, 1.2rem);
+  --fs-body: clamp(0.94rem, 1vw, 1.02rem);
+  --fs-mono: clamp(0.63rem, 0.72vw, 0.72rem);
+  --fs-mono-sm: clamp(0.58rem, 0.65vw, 0.66rem);
+
+  /* --- tracking --- */
+  --tr-display: -0.04em;
+  --tr-tight: -0.02em;
+  --tr-mono: 0.2em;
+
+  /* --- motion: slow, astronomical, never bouncy --- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 260ms;
+  --dur: 620ms;
+  --dur-slow: 1100ms;
+
+  /* --- live luminance, written by the hero (see HeroStage) ---
+     Every lit surface on the page multiplies against this, so the
+     transit dip is felt site-wide, not just inside the hero. */
+  --lum: 1;
+  --ambient: 0;
+
+  /* Approach state. Declared here so the hero renders correctly on the
+     server and before hydration, instead of falling back to invalid
+     values (which would paint the glow at full strength). */
+  --p: 0;
+  --star-d: 3.4px;
+
+  /* Journey state: the approach (--lp), what it swallows (--lens-core)
+     and the far side (--sky, --emerge). Declared so the first paint is
+     correct before hydration. */
+  --lp: 0;
+  --lens-core: 0px;
+  --lens-arc: 0;
+  --lens-op: 1;
+  --sky: 0;
+  --emerge: 0;
+}
