@@ -31,10 +31,32 @@
 
   /* --- layout --- */
   --gutter: clamp(1.25rem, 5vw, 5rem);
-  /* Height of the fixed header bar: a 44px control plus its padding.
-     Declared once here because the phone layout has to reserve it and
-     the scene has to stay out from under it. */
-  --bar: calc(44px + 2 * clamp(1.1rem, 2.4vw, 1.7rem));
+  /* Height of the fixed header bar, and the single name every other
+     rule uses for it: section padding, scroll padding, the copy cap,
+     and the band the 3D scene frames against.
+
+     The value here is what the server renders and what the first
+     paint uses — a 44px control plus the bar's own padding, which is
+     the bar's real construction, so it is correct before any script
+     runs. SiteHeader then measures the bar it actually drew and
+     writes the measured pixel value back over this on the document
+     element, so a wrapped bar or a different font metric corrects
+     itself. Nothing else may measure the header. */
+  --header-height: calc(44px + 2 * clamp(1.1rem, 2.4vw, 1.7rem));
+
+  /* One definition of "a screen".
+
+     `dvh` and not `svh`: on a phone the browser's own toolbar slides
+     away as you scroll, and a sticky stage sized in `svh` keeps the
+     smaller height — which is where the black band under the content
+     came from. `dvh` tracks the viewport that is actually visible.
+     The fallback is `svh` for anything that predates it, because too
+     short is survivable and too tall is not. */
+  --screen: 100svh;
+
+  /* Deep space. The 3D canvas clears to this colour, so anything that
+     has to meet the scene without a seam uses the same value. */
+  --space: #05070a;
   --shot-radius: clamp(14px, 2vw, 28px);
   --max: 1680px;
   --section-y: clamp(6rem, 13vw, 11rem);
@@ -82,4 +104,14 @@
   --lens-op: 1;
   --sky: 0;
   --emerge: 0;
+}
+
+/* The dynamic viewport where it exists. Kept as an override rather
+   than written inline above so a browser without `dvh` keeps the
+   `svh` value instead of dropping the declaration and falling back to
+   nothing at all. */
+@supports (height: 100dvh) {
+  :root {
+    --screen: 100dvh;
+  }
 }

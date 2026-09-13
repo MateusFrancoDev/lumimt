@@ -4,13 +4,20 @@
 
 .proto {
   position: relative;
-  background: #05070a;
+  background: var(--space);
+  /* The scrollable distance between two stops. Deliberately `svh` and
+     not `--screen`: this is document length, and document length must
+     not change when a phone's toolbar slides away, or every snap
+     position below the fold would move underneath the reader. */
   --step: 42svh;
-  /* One gap between each pair of stops, plus a viewport for the last
+  /* One gap between each pair of stops, plus one screen for the last
      stop to occupy. `--gaps` is written by the component from the
      path itself, so adding a project cannot leave the page a stop
-     short. */
-  height: calc(var(--gaps, 12) * var(--step) + 100svh);
+     short. The trailing screen is `--screen`, the same length the
+     stage is, so the stage unsticks exactly as the journey ends —
+     with `svh` here and a taller visible viewport, the stage came
+     unstuck early and the last stop slid away as you reached it. */
+  height: calc(var(--gaps, 11) * var(--step) + var(--screen));
 }
 
 /* Laid over the section rather than stacked before or after it. A
@@ -69,7 +76,12 @@ html.nav-locked {
 .proto__stage {
   position: sticky;
   top: 0;
-  height: 100svh;
+  /* The visible viewport, not the small one. A stage fixed at `svh`
+     keeps the height the screen has with the browser's toolbar out,
+     so once that toolbar slid away the scene and the copy stayed in
+     the upper part of the screen and the rest was a band of black.
+     See `--screen` in tokens.css. */
+  height: var(--screen);
   width: 100%;
   overflow: clip;
   z-index: 1;
@@ -155,10 +167,39 @@ html.nav-locked {
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  /* One definition of where the copy column sits and how wide it is,
-     because the project image has to line up against it. */
+  /* One definition of where the copy column sits and how wide it is. */
   --copy-w: min(calc(100% - var(--gutter) * 2), 52ch);
   --copy-bottom: clamp(2rem, 8vh, 5rem);
+  /* Breathing room at the edges of the band a body may occupy. */
+  --band-gap: clamp(1rem, 5.2vh, 46px);
+  /* Where the copy starts: clear of the header, with air above it. */
+  --copy-top: calc(var(--header-height) + clamp(0.75rem, 3.2svh, 2rem));
+}
+
+/* ------------------------------------------------------------------
+   The band.
+
+   An empty element, and the single most important one on the page:
+   it is the layout's own statement of where a planet is allowed to
+   be, and the camera frames its body into it. Nothing in the scene
+   positions itself against the viewport any more — the DOM says where
+   the free space is at this width, and the scene answers.
+
+   It replaces a measurement that read the header and the visible copy
+   panel and inferred a band between them. That inference is what tied
+   the framing to the length of whatever paragraph was on screen, so
+   the three projects, whose descriptions differ by a line, each got a
+   different band and a different planet position.
+
+   `--aim` is the same decision in the other axis: 1 where the copy
+   sits in a column beside the body, 0 where it sits above it. A media
+   query decides it, which means one place decides it.
+------------------------------------------------------------------ */
+.pov__band {
+  --aim: 1;
+  position: absolute;
+  inset: calc(var(--header-height) + var(--band-gap)) 0 0 0;
+  pointer-events: none;
 }
 
 .pov__panel {
@@ -188,6 +229,71 @@ html.nav-locked {
   visibility: visible;
   transition-delay: 0s;
   pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------
+   A panel is part of the page, never a dialog over it.
+
+   The copy panels carry a cap and `overflow-y: auto`, so that a tall
+   one — the contact form on a short phone — scrolls inside itself
+   rather than growing up past the header. That cap is worth keeping.
+   What came with it was not: `overscroll-behavior: contain`.
+
+   `contain` stops a scroll gesture that starts inside this element
+   from ever reaching the page, and it does that whether or not the
+   element has anything to scroll. Four of the five panels have
+   nothing to scroll at all, so on a phone a finger placed on a
+   heading, a paragraph, a label or a form field started a gesture
+   that went precisely nowhere — while the same gesture begun on the
+   sky beside it moved the page a whole section. Containment belongs
+   to things laid over a page, like the menu overlay; a panel that is
+   the page's own copy has to hand the gesture on.
+
+   Nothing else is needed to make touch work here. There is no
+   `touch-action` anywhere in this project, no `preventDefault` on any
+   touch, pointer or wheel listener, and the 3D canvas passes gestures
+   straight through — which is why the empty sky always scrolled.
+------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   Slides — the part of a panel that changes while the phase does not.
+
+   Capabilities have five of them and projects three, and each one is
+   a different length of prose. Rendered one at a time they changed
+   the height of the panel, which changed the band left for the body,
+   which moved the planet — so the same section framed its planet
+   differently depending on which sentence was on screen, and the
+   shortest project sat visibly apart from the other two.
+
+   They are stacked in one grid cell instead. The cell is as tall as
+   the longest of them at all times, so the panel's height is a
+   property of the section rather than of the sentence, every project
+   is framed identically, and changing slide costs no layout at all —
+   it is a crossfade, not a reflow.
+------------------------------------------------------------------ */
+
+.pov__slides {
+  display: grid;
+  width: 100%;
+}
+
+.pov__slide {
+  grid-area: 1 / 1;
+  display: grid;
+  gap: clamp(0.6rem, 1.6vh, 1.1rem);
+  justify-items: start;
+  align-content: start;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 520ms var(--ease-out),
+    visibility 0s linear 520ms;
+}
+
+.pov__slide[data-on="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .pov__marker {
@@ -494,9 +600,12 @@ html.nav-locked {
    the header is worse than a scrollbar nobody needs. */
 @media (min-width: 861px) {
   .pov__panel {
-    max-height: calc(100svh - var(--bar) - var(--copy-bottom) - 0.5rem);
+    max-height: calc(var(--screen) - var(--header-height) - var(--copy-bottom) - 0.5rem);
     overflow-y: auto;
-    overscroll-behavior: contain;
+    /* Scroll chaining stays on, which is the whole point of the note
+       above `.pov__panel`: this panel is part of the page, not a
+       dialog laid over it. `overscroll-behavior: contain` here swallowed
+       the gesture instead. */
     scrollbar-width: none;
   }
 
@@ -508,74 +617,86 @@ html.nav-locked {
 /* ------------------------------------------------------------------
    The phone layout.
 
-   Under 860px the copy runs the full width, so the screen is a column
-   and not two: header, then the body with the middle of the screen to
-   itself, then the section's copy along the bottom.
+   Under 860px the screen is one column, and the column reads in the
+   order the section is written in:
 
-   The copy is anchored to the bottom of the column and the sky takes
-   everything left over, which is what puts the body in the middle of
-   the frame rather than crushed under the header. The panel is capped
-   so that a tall one — the contact form on a 568px-high phone —
-   scrolls inside itself instead of growing upward past the top of the
-   viewport, which is how it used to end up 75px off the screen, under
-   the header, unreadable.
+       respiro — the copy clears the header
+       texto   — the section's own words
+       espaço  — the band, which is the planet's room
+       respiro — the scroll mark, and the bottom edge
 
-   The cap is also the floor for the sky: the band the camera frames
-   against is whatever is left between the header and the copy, so
-   guaranteeing the copy cannot take it all is what guarantees the
-   body a place to be.
+   The copy used to be pinned to the bottom edge with the sky above
+   it, which put every planet under the header and left the words
+   sitting on the bottom edge of a stage that was shorter than the
+   screen. Reading downward instead — words, then the body they are
+   about — is both the order the sections are written in and the one
+   that leaves the planet visibly belonging to its section.
+
+   Three rows, and the middle one is the band. It has a floor, so a
+   long panel cannot take the planet's room; the panel has a ceiling
+   for the same reason and scrolls inside itself when a contact form
+   meets a 568px phone. Between them the body always has somewhere to
+   be, at every height, with no breakpoint deciding it.
 ------------------------------------------------------------------ */
 @media (max-width: 860px) {
   .pov {
     display: grid;
     grid-template-columns: 1fr;
-    /* sky takes the slack, then the copy, then the scroll mark — which
-       gets a row of its own rather than floating over the bottom edge,
-       because a panel that scrolls inside itself fills its own box and
-       its text would otherwise run underneath the mark */
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    --sky: clamp(7rem, 23svh, 13rem);
+    grid-template-rows: auto minmax(var(--band-min), 1fr) auto;
+    --band-min: clamp(8rem, 27svh, 15rem);
     --mark: clamp(4.25rem, 10svh, 5.5rem);
   }
 
-  /* The copy owns the lower part of a phone screen, and whatever is
-     behind it is a lit planet. A scrim under the text — behind the
-     panels, above the canvas — is what keeps it readable without
-     dimming the whole scene. */
+  /* The words are at the top now, so the scrim that keeps them
+     readable over a lit body is too. Behind the panels, above the
+     canvas: the scene is never dimmed, only what is under type. */
   .pov::after {
     content: "";
     position: absolute;
-    inset: auto 0 0 0;
-    height: 66%;
+    inset: 0 0 auto 0;
+    height: 72%;
     z-index: -1;
     pointer-events: none;
     background: linear-gradient(
-      to top,
-      rgba(5, 7, 10, 0.94) 10%,
-      rgba(5, 7, 10, 0.72) 44%,
+      to bottom,
+      rgba(5, 7, 10, 0.94) 12%,
+      rgba(5, 7, 10, 0.7) 52%,
       rgba(5, 7, 10, 0) 100%
     );
   }
 
-  /* All five panels live in the same cell, and a hidden one still has
-     a height — so leaving them all in flow sized the row to the
-     tallest panel on the site (the contact form) and every other
-     section inherited its gap. Only the panel on screen is in flow;
-     the rest are taken out of it, pinned to the same bottom edge so
-     the one fading out does not jump while it goes. */
+  .pov__band {
+    --aim: 0;
+    position: relative;
+    inset: auto;
+    grid-row: 2;
+    grid-column: 1 / -1;
+    /* the espaço between the words and the body, and the respiro
+       under the body, are this element's own margins — so the band
+       the camera is handed is the room the planet actually has */
+    margin-block: clamp(0.5rem, 2.4svh, 1.5rem);
+  }
+
+  /* All five panels share the top row, and a hidden one still has a
+     height — so leaving them all in flow sized the row to the tallest
+     panel on the site (the contact form) and every other section
+     inherited its gap. Only the panel on screen is in flow; the rest
+     are taken out of it, pinned to the same top edge so the one
+     fading out does not jump while it goes. */
   .pov__panel {
     position: absolute;
-    grid-row: -2;
+    grid-row: 1;
     grid-column: 1 / -1;
-    inset: auto 0 0 0;
-    align-self: end;
+    inset: 0 0 auto 0;
+    align-self: start;
     width: auto;
+    margin-block: var(--copy-top) 0;
     margin-inline: var(--gutter);
     /* never so tall that the body loses its band */
-    max-height: calc(100svh - var(--bar) - var(--sky) - var(--mark));
+    max-height: calc(
+      var(--screen) - var(--copy-top) - var(--band-min) - var(--mark)
+    );
     overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-bottom: clamp(0.75rem, 2.5svh, 1.5rem);
     scrollbar-width: none;
   }
 
@@ -588,16 +709,10 @@ html.nav-locked {
     display: none;
   }
 
-  /* The projects stop has two pieces of art, not one: the ring the
-     camera is looking at, and the project's own image. The image gets
-     a row directly above the copy, so the three read as one block
-     along the bottom — sky, then image, then words, with no gap
-     opening between them — and the planet keeps the middle of the
-     screen like every other section. */
   /* out of the corner, into its own row along the bottom */
   .pov__scroll {
     position: relative;
-    grid-row: -1;
+    grid-row: 3;
     grid-column: 1 / -1;
     justify-self: center;
     align-self: end;
@@ -605,10 +720,28 @@ html.nav-locked {
     translate: none;
     padding-bottom: clamp(0.75rem, 2.5svh, 1.4rem);
   }
+
   /* The ring markers are a pointer affordance: too small to hit with
      a thumb, and unnecessary here, since on a phone the scroll moves
      between projects one at a time. */
   .pov__hint {
+    display: none;
+  }
+
+  /* The last stop is the exception the layout has to make room for.
+     It carries the tallest panel on the site — a heading, a lead and
+     a whole form — and it is the one place with nowhere further to
+     scroll, so the invitation to scroll is already invisible there.
+     It gives its row back instead of holding it open above a form
+     that needs the height, and the band gives up some of its floor:
+     the star is still the destination, but on a phone the thing that
+     has to work here is the form. */
+  .pov[data-phase="contact"] {
+    --band-min: clamp(5rem, 15svh, 9rem);
+    --mark: 0px;
+  }
+
+  .pov[data-phase="contact"] .pov__scroll {
     display: none;
   }
 
@@ -618,12 +751,73 @@ html.nav-locked {
   }
 }
 
-/* A short phone in landscape has no room for a band of sky at all;
-   the copy takes what it needs and the body is framed into whatever
-   is left. */
-@media (max-width: 860px) and (max-height: 520px) {
+/* A short screen that is still a column — a small window, a phone in
+   landscape that is not very wide — has little to divide up, so the
+   band keeps a floor it can actually be given. */
+@media (max-width: 860px) and (max-height: 560px) {
   .pov {
-    --sky: 4rem;
+    --band-min: 5.5rem;
+    --mark: 3rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   A phone on its side.
+
+   Stacking words above a body needs height, and a handset in
+   landscape has none: 390px of it, minus a header, minus a paragraph,
+   leaves the planet a strip it cannot be framed into — which is how
+   this screen ended up with the copy cut off and the body a dot in
+   the distance.
+
+   The shape of the screen, not the size of the device, decides the
+   composition. Past 3:2 there is room for the copy to sit beside the
+   body rather than above it, so it does, at any width — the same
+   arrangement a monitor gets, for the same reason.
+------------------------------------------------------------------ */
+@media (max-width: 860px) and (min-aspect-ratio: 3 / 2) {
+  .pov {
+    display: block;
+    --copy-bottom: clamp(1rem, 4vh, 2rem);
+  }
+
+  .pov::after {
+    display: none;
+  }
+
+  .pov__band {
+    --aim: 1;
+    position: absolute;
+    inset: calc(var(--header-height) + var(--band-gap)) 0 0 0;
+    margin-block: 0;
+  }
+
+  /* The column layout takes the active panel out of `absolute` and
+     back into flow, and it does it with a more specific selector — so
+     putting the panel back where a wide screen wants it has to be at
+     least as specific, or the flowed rule quietly wins and the copy
+     lands in the top-left corner with its head under the header. */
+  .pov__panel,
+  .pov__panel[data-on="true"] {
+    position: absolute;
+    inset: auto auto var(--copy-bottom) var(--gutter);
+    width: var(--copy-w);
+    margin: 0;
+    max-height: calc(
+      var(--screen) - var(--header-height) - var(--copy-bottom) - 0.5rem
+    );
+  }
+
+  .pov__scroll {
+    position: absolute;
+    inset: auto auto clamp(0.5rem, 2vh, 1rem) 50%;
+    justify-self: auto;
+    translate: -50% 0;
+    padding-bottom: 0;
+  }
+
+  .pov__rail {
+    height: 26px;
   }
 }
 

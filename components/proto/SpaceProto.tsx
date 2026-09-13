@@ -95,48 +95,47 @@ export function SpaceProto() {
   }, []);
 
   /**
-   * Measure the band of screen the body may use: below the header,
-   * above the copy.
+   * Read the band the layout left free, and hand it to the camera.
    *
-   * This is the whole fix for bodies sitting too high. Nothing is
-   * positioned against the viewport any more — the camera is aimed at
-   * the gap this stop's own section leaves, so a tall panel gets a
-   * smaller, lower body and a short one gets a big, high body, on any
-   * screen, with no breakpoint deciding it.
+   * This is the only measurement in the whole journey, and it does not
+   * measure the viewport: it measures one element, `.pov__band`, whose
+   * size and place are decided entirely by CSS at the current width.
+   * The DOM says where a planet may go; the scene answers. Nothing
+   * else reads `window.innerHeight`, no offset is hard-coded against a
+   * breakpoint, and there is no second opinion that could disagree
+   * with the first.
+   *
+   * It replaces an inference — header height, then the box of whatever
+   * copy panel happened to be visible, then the gap between them —
+   * which tied the framing to the length of the paragraph on screen.
+   * That is what gave the three projects three different plans.
    */
   const measure = useCallback(() => {
     const stage = sectionRef.current?.querySelector<HTMLElement>(".proto__stage");
-    if (!stage) return;
+    const band = sectionRef.current?.querySelector<HTMLElement>(".pov__band");
+    if (!stage || !band) return;
 
-    const { width, height } = stage.getBoundingClientRect();
-    if (height <= 0 || width <= 0) return;
+    const screen = stage.getBoundingClientRect();
+    if (screen.height <= 0 || screen.width <= 0) return;
 
-    const bar = document.querySelector<HTMLElement>(".header__inner");
-    const headerBottom = bar ? bar.getBoundingClientRect().bottom : 0;
+    const room = band.getBoundingClientRect();
+    if (room.height <= 0) return;
 
-    const panel = document.querySelector<HTMLElement>('.pov__panel[data-on="true"]');
-    const copy = panel?.getBoundingClientRect();
+    /* Whether the copy sits beside the body or above it. A media query
+       decides it and writes it here, so the breakpoint exists once. */
+    const aim = Number.parseFloat(getComputedStyle(band).getPropertyValue("--aim"));
 
-    /* Wide layouts put the copy in a column beside the body, so the
-       body keeps the full height and slides sideways instead. */
-    const beside = !copy || copy.width < width * 0.62;
-
-    /* Breathing room at both ends of the band. Generous, because the
-       body is a lit sphere with a glow around it: framing it flush
-       against what is below reads as that thing cutting into it. */
-    const gap = Math.min(46, height * 0.052);
-    const top = Math.min(0.4, (headerBottom + gap) / height);
-
-    let bottom = 1;
-    if (!beside) {
-      /* The copy is a soft ceiling: it has a scrim behind it, so a
-         body may reach under it rather than shrink away to nothing. */
-      const soft = copy ? (copy.top - gap) / height : 1;
-      bottom = Math.max(Math.min(1, soft), top + MIN_BAND);
-    }
+    const top = Math.min(
+      1 - MIN_BAND,
+      Math.max(0, (room.top - screen.top) / screen.height),
+    );
+    const bottom = Math.max(
+      top + MIN_BAND,
+      Math.min(1, (room.bottom - screen.top) / screen.height),
+    );
 
     frame.current = {
-      side: beside ? sideFor(width / Math.max(height, 1)) : 0,
+      side: (Number.isFinite(aim) ? aim : 1) * sideFor(screen.width / screen.height),
       top,
       bottom,
     };
@@ -162,12 +161,15 @@ export function SpaceProto() {
   useEffect(() => {
     if (webgl !== true) return;
 
+    /* The stage, because the screen can change size; and the band,
+       because the copy above it can change height and the band is
+       what gives way. Watching the band rather than each panel means
+       one observer for every reason the free space can move. */
     const observer = new ResizeObserver(() => measure());
     const stage = sectionRef.current?.querySelector(".proto__stage");
     if (stage) observer.observe(stage);
-    const bar = document.querySelector(".header__inner");
-    if (bar) observer.observe(bar);
-    document.querySelectorAll(".pov__panel").forEach((el) => observer.observe(el));
+    const band = sectionRef.current?.querySelector(".pov__band");
+    if (band) observer.observe(band);
 
     window.addEventListener("resize", measure);
     window.addEventListener("orientationchange", measure);
@@ -307,6 +309,7 @@ export function SpaceProto() {
   return (
     <section
       ref={sectionRef}
+      id="main"
       className="proto"
       /* The section is one viewport per stop plus the gaps between
          them. Declared from the path so the page cannot get out of

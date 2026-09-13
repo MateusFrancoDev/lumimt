@@ -26,9 +26,18 @@ html {
   scrollbar-gutter: stable;
 }
 
-/* anchored sections must clear the fixed header */
+/* Anchored targets must clear the fixed header, and they clear it by
+   the header's own published height rather than by a guess that
+   happened to be close.
+
+   `scroll-padding-top` on the scroller would be the usual companion
+   to this, and it is deliberately absent: this document is a scroll
+   snap container, and scroll padding offsets every snap position in
+   it — each stop of the journey would come to rest a header's height
+   short of where the camera expects it. The header floats over
+   full-bleed stops; only real anchors need the allowance. */
 [id] {
-  scroll-margin-top: clamp(4.5rem, 11vh, 7rem);
+  scroll-margin-top: var(--header-height);
 }
 
 body {
@@ -43,7 +52,7 @@ body {
   /* clip, not hidden: kills accidental horizontal scroll (item 25)
      without creating a scroll container that breaks position:sticky */
   overflow-x: clip;
-  min-height: 100svh;
+  min-height: var(--screen);
 }
 
 h1,
@@ -161,4 +170,21 @@ video {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* The page without scripting. The journey cannot run there, so this
+   is the whole of the site: who it is and how to reach them. */
+.noscript {
+  display: grid;
+  gap: 1rem;
+  place-content: center;
+  min-height: var(--screen);
+  padding: var(--gutter);
+  text-align: center;
+  background: var(--space);
+}
+
+.noscript a {
+  color: var(--blue-light);
+  border-bottom: 1px solid var(--line-blue);
 }

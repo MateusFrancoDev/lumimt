@@ -64,18 +64,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`}>
       <body>
         <LanguageProvider>
-        {/* Without JS the approach cannot run, so everything it would
-            have revealed is simply shown. */}
+        {/* The journey is a WebGL scene mounted on the client, so
+            with scripting off there is nothing to reveal — the styles
+            that used to be injected here belonged to an approach that
+            no longer exists and referenced classes that are no longer
+            rendered. What a visitor without JavaScript needs is the
+            address, in words. */}
         <noscript>
-          <style>{`
-            .hero { height: 100svh; }
-            .lens { display: none; }
-            .hero__stage { --sky: 1; --emerge: 1; --star-d: 26vmin; --halo: 0.9; }
-            .layer, .reveal { opacity: 1 !important; translate: none !important; }
-            .words span { opacity: 1 !important; translate: none !important; }
-            .hero__headline { clip-path: none !important; }
-            .work__visual { opacity: 1 !important; clip-path: none !important; }
-          `}</style>
+          <div className="noscript">
+            <p className="mono">Lumimt — Software House</p>
+            <p>
+              Esta página é uma cena 3D e precisa de JavaScript. Enquanto isso, fale
+              com a gente em <a href="mailto:lumimt.tech@gmail.com">lumimt.tech@gmail.com</a>.
+            </p>
+          </div>
         </noscript>
 
           <a className="skip-link mono" href="#main">

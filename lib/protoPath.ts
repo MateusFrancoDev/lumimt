@@ -57,17 +57,6 @@ export interface Stop {
    * breakpoint being involved.
    */
   radius: number;
-  /**
-   * Where to aim instead when the copy is below the body rather than
-   * beside it. The projects stop aims at one marker on the ring,
-   * which is right on a wide screen — the marker is the project — but
-   * on a phone the body that fills the frame is the planet the ring
-   * belongs to, sitting off to one side of that marker. Aiming at the
-   * marker there leaves the planet half out of its band, touching the
-   * image below it. Undefined for every stop whose target already is
-   * the thing you see.
-   */
-  focus?: Vector3;
 }
 
 /* ------------------------------------------------------------------
@@ -79,8 +68,66 @@ const ringBasis = new Matrix4().makeRotationFromEuler(
   new Euler(PROJECT_RING.tilt, 0, PROJECT_RING.roll),
 );
 
+/* ------------------------------------------------------------------
+   The projects arc.
+
+   One set of numbers decides both where a project's point of light
+   sits on the ring and where the camera stands to read it, because
+   the two only make sense together.
+
+   `centre` faces the direction the gas giant is lit from, so every
+   project is read off the sunlit side. Spreading the three cameras
+   evenly around the whole ring instead — which is what tying each
+   camera to its own marker used to do — puts them 120° apart, and no
+   single light can face all three: one project came out a black
+   silhouette. A narrow sweep keeps every one of them lit and still
+   gives each its own parallax on the ring.
+
+   The markers lead the camera by `lead` and are spaced by `step`, so
+   each one sits out on the near side of the ring where it can be seen
+   and, on a pointer, clicked.
+------------------------------------------------------------------ */
+const PROJECT_ARC = {
+  /**
+   * Bearing at the middle of the sweep, in radians around the ring.
+   *
+   * The worlds of this journey are strung along one corridor in z,
+   * so a camera that looks up or down that corridor has one of them
+   * behind its subject — which is how the neutron star ended up as a
+   * white disc beside a project. Looking across the corridor instead
+   * puts every other body at least 55° off axis, out of frame at any
+   * aspect ratio including an ultrawide, and still catches the gas
+   * giant's light from the side rather than behind it.
+   */
+  centre: 0,
+  /** How far the camera moves from one project to the next. */
+  sweep: 0.3,
+  /**
+   * Where a project's marker sits relative to its camera. Negative,
+   * which puts the markers on the half of the ring that falls to the
+   * right of frame — the copy column is on the left at every width,
+   * and a point of light crossing a paragraph is a point of light in
+   * the way.
+   */
+  lead: -0.95,
+  /** How far apart the markers are along the ring. */
+  step: 0.6,
+} as const;
+
+/** Signed distance of `index` from the middle of the set. */
+function fromCentre(index: number, count: number) {
+  return index - (count - 1) / 2;
+}
+
 export function markerAngle(index: number, count: number) {
-  return (index / count) * Math.PI * 2 + 0.6;
+  return (
+    PROJECT_ARC.centre + PROJECT_ARC.lead + fromCentre(index, count) * PROJECT_ARC.step
+  );
+}
+
+/** Bearing the camera stands at to read project `index`. */
+export function cameraBearing(index: number, count: number) {
+  return PROJECT_ARC.centre + fromCentre(index, count) * PROJECT_ARC.sweep;
 }
 
 export function markerPosition(index: number, count: number, out: Vector3): Vector3 {
@@ -91,38 +138,71 @@ export function markerPosition(index: number, count: number, out: Vector3): Vect
     .add(BODIES.projects);
 }
 
-/** How far behind a marker the camera sits while that project is read. */
-const STANDOFF = 10;
-const LIFT = 2.4;
+/** A body, lifted a touch so it does not sit dead on the horizon line. */
+function centre(body: Vector3) {
+  return new Vector3(body.x, body.y + 0.3, body.z);
+}
+
+/* ------------------------------------------------------------------
+   The seat every project is read from.
+
+   One configuration, one function, and deliberately no per-index
+   numbers. The camera used to be built inside the ring's own tilted
+   basis and aimed at the marker it belonged to, which meant both its
+   height and its aim were a function of where that project happened
+   to sit on a tilted circle: the three stops came out at +0.3, -2.6
+   and +9.0 world units above the planet, and the fit pull-back for a
+   narrow viewport multiplied that last one to +20. That is why the
+   third project's planet climbed into the header while the other two
+   sat still.
+
+   So the seat is built in world axes instead. `elevation` and
+   `distance` are constants, and `look` is the same point for every
+   project, so the vertical composition is identical by construction
+   rather than by tuning — there is no arithmetic left that could make
+   one project differ from another. The only thing an index changes is
+   the bearing: which side of the planet the camera stands on, which
+   rotates the ring and brings that project's own marker round to the
+   near edge.
+------------------------------------------------------------------ */
+export const PROJECT_VIEW = {
+  /** How far from the planet the camera stands, in world units. */
+  distance: 19.4,
+  /** How far above the planet's centre. Positive, so the ring is read
+   *  slightly from above and stays a ring rather than a line. */
+  elevation: 1.5,
+  /** The planet plus enough ring to read as a ring. */
+  radius: 5.2,
+  /** How far the aim slides on a wide screen, to free the left column. */
+  side: 2.6,
+} as const;
+
+/** The one point every project stop looks at. */
+export const PROJECT_LOOK = centre(BODIES.projects);
+
+/** Where the camera stands to read project `index`. */
+export function projectCamera(index: number, out: Vector3): Vector3 {
+  const bearing = cameraBearing(index, PROJECT_COUNT);
+  return out
+    .set(
+      Math.cos(bearing) * PROJECT_VIEW.distance,
+      PROJECT_VIEW.elevation,
+      Math.sin(bearing) * PROJECT_VIEW.distance,
+    )
+    .add(BODIES.projects);
+}
 
 function projectStop(index: number): Stop {
-  const marker = markerPosition(index, PROJECT_COUNT, new Vector3());
-  const angle = markerAngle(index, PROJECT_COUNT);
-  const pos = new Vector3(
-    Math.cos(angle) * (MARKER_RADIUS + STANDOFF),
-    LIFT,
-    Math.sin(angle) * (MARKER_RADIUS + STANDOFF),
-  )
-    .applyMatrix4(ringBasis)
-    .add(BODIES.projects);
-
   return {
     phase: "projects",
     capability: 0,
     project: index,
-    pos,
-    look: marker,
-    side: 2.6,
+    pos: projectCamera(index, new Vector3()),
+    look: PROJECT_LOOK.clone(),
+    side: PROJECT_VIEW.side,
     fit: true,
-    // the marker, with enough of the ring around it to read as a ring
-    radius: 4.6,
-    focus: BODIES.projects.clone(),
+    radius: PROJECT_VIEW.radius,
   };
-}
-
-/** A body, lifted a touch so it does not sit dead on the horizon line. */
-function centre(body: Vector3) {
-  return new Vector3(body.x, body.y + 0.3, body.z);
 }
 
 /* ------------------------------------------------------------------
@@ -220,6 +300,23 @@ export function stopProgress(index: number) {
  * guaranteed to land while stop 01 still has the frame black.
  */
 export const REVEAL_PROGRESS = stopProgress(1) + 0.012;
+
+/**
+ * Where the neutron star starts to light up.
+ *
+ * Every world of this journey is strung along one corridor, so from
+ * the projects the last body of all is 43 units behind the planet
+ * being read about — and at full brightness it turned up as a white
+ * disc beside it on any screen wide enough to reach it. Distance
+ * cannot separate the two cases: the contact stop itself is framed
+ * from 40 units away on a phone.
+ *
+ * Progress can, and it is the same rule the far side of the hole
+ * already follows — a body that the journey has not arrived at yet is
+ * not lit yet. It comes up over the last stop's worth of scroll,
+ * which reads as an approach rather than a switch.
+ */
+export const CONTACT_LIT_FROM = stopProgress(STOPS.length - 2) + 0.04;
 
 const smoothstep = (t: number) => {
   const x = Math.min(1, Math.max(0, t));
@@ -329,11 +426,12 @@ function framedPos(stop: Stop, pull: number, out: Vector3): Vector3 {
   return out.sub(stop.look).multiplyScalar(pull).add(stop.look);
 }
 
-/** The stop's aim: its own target on a wide screen, easing toward the
- *  body itself as the layout turns into a single column. */
+/** The stop's aim: the body itself, slid sideways by however much of
+ *  a side-by-side layout the viewport is actually wide enough for.
+ *  Every stop aims at the thing you are looking at, so there is no
+ *  second target that could disagree with the first. */
 function framedLook(stop: Stop, side: number, out: Vector3): Vector3 {
   out.copy(stop.look);
-  if (stop.focus) out.lerp(stop.focus, 1 - side);
   out.x -= stop.side * side;
   return out;
 }

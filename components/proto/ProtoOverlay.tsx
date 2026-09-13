@@ -198,11 +198,17 @@ function ContactForm() {
 export function ProtoOverlay({ phase, capability, project, hint }: ProtoOverlayProps) {
   const { t } = useLanguage();
 
-  const era = t.capabilities.items[capability] ?? t.capabilities.items[0];
-  const work = t.work.items[project] ?? t.work.items[0];
-
   return (
     <div className="pov" data-phase={phase} data-hint={hint}>
+      {/* The room a planet is allowed to occupy at this width.
+
+          Empty on purpose. The camera measures this element and frames
+          its body into it, which is how the scene ends up answering to
+          the layout instead of to the viewport — and how a planet ends
+          up belonging to its section rather than floating over the
+          page. See `.pov__band` in proto.css. */}
+      <div className="pov__band" aria-hidden="true" />
+
       {/* ---------- 00 ---------- */}
       <section className="pov__panel pov__panel--signal" data-on={phase === "signal"}>
         <p className="pov__marker mono">
@@ -239,9 +245,23 @@ export function ProtoOverlay({ phase, capability, project, hint }: ProtoOverlayP
         <p className="pov__marker mono">
           <span className="pov__id">02</span> {t.capabilities.marker}
         </p>
-        <p className="pov__sub mono">{era.era}</p>
-        <h2 className="pov__title">{era.title}</h2>
-        <p className="pov__lead">{era.description}</p>
+        {/* Every era is rendered, one is shown. The panel is then as
+            tall as the longest of them whichever is on screen, so the
+            band below it does not move as the scroll walks the list. */}
+        <div className="pov__slides">
+          {t.capabilities.items.map((item, index) => (
+            <div
+              className="pov__slide"
+              key={item.id}
+              data-on={index === capability}
+              inert={index !== capability || undefined}
+            >
+              <p className="pov__sub mono">{item.era}</p>
+              <h2 className="pov__title">{item.title}</h2>
+              <p className="pov__lead">{item.description}</p>
+            </div>
+          ))}
+        </div>
         <ol className="pov__index mono-sm">
           {t.capabilities.items.map((item, index) => (
             <li key={item.id} data-on={index === capability}>
@@ -257,32 +277,49 @@ export function ProtoOverlay({ phase, capability, project, hint }: ProtoOverlayP
         <p className="pov__marker mono">
           <span className="pov__id">03</span> {t.work.marker}
         </p>
-        <p className="pov__sub mono">
-          {[work.id, work.sector, work.kind, work.year].filter(Boolean).join(" / ")}
-        </p>
-        <h2 className="pov__title">{work.name}</h2>
-        <p className="pov__lead">{work.description}</p>
-        <div className="pov__stack mono-sm">
-          {work.stack.map((item) => (
-            <span key={item}>{item}</span>
+        {/* The three projects are stacked in one cell rather than
+            swapped in and out. Their descriptions differ by a line,
+            and rendered one at a time that difference became the
+            height of the panel, the size of the band under it and the
+            position of the planet — which is why the last project's
+            planet used to sit higher than the other two. */}
+        <div className="pov__slides">
+          {t.work.items.map((item, index) => (
+            <div
+              className="pov__slide"
+              key={item.id}
+              data-on={index === project}
+              inert={index !== project || undefined}
+            >
+              <p className="pov__sub mono">
+                {[item.id, item.sector, item.kind, item.year].filter(Boolean).join(" / ")}
+              </p>
+              <h2 className="pov__title">{item.name}</h2>
+              <p className="pov__lead">{item.description}</p>
+              <div className="pov__stack mono-sm">
+                {item.stack.map((entry) => (
+                  <span key={entry}>{entry}</span>
+                ))}
+              </div>
+
+              {/* The project itself, live — better evidence than a
+                  picture of it, and it leaves the scene to the scene. */}
+              <a
+                className="link link--sm pov__visit"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t.work.visit}
+              >
+                <span className="link__label mono">{domainOf(item.href)}</span>
+                <span className="link__track" aria-hidden="true" />
+                <span className="link__arrow" aria-hidden="true">
+                  ↗
+                </span>
+              </a>
+            </div>
           ))}
         </div>
-
-        {/* The project itself, live — better evidence than a picture of
-            it, and it leaves the scene to the scene. */}
-        <a
-          className="link link--sm pov__visit"
-          href={work.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={t.work.visit}
-        >
-          <span className="link__label mono">{domainOf(work.href)}</span>
-          <span className="link__track" aria-hidden="true" />
-          <span className="link__arrow" aria-hidden="true">
-            ↗
-          </span>
-        </a>
 
         <p className="pov__hint mono-sm">{t.work.hint}</p>
       </section>

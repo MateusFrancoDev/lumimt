@@ -8,6 +8,8 @@ import {
   Color,
   Group,
   Mesh,
+  MeshBasicMaterial,
+  PointLight,
   Points,
   ShaderMaterial,
   Texture,
@@ -31,6 +33,7 @@ import {
   BODIES,
   HORIZON_RADIUS,
   PROJECT_RING,
+  CONTACT_LIT_FROM,
   REVEAL_PROGRESS,
   STOP_COUNT,
   DEFAULT_FRAME,
@@ -185,11 +188,15 @@ function Glow({
   colour,
   intensity,
   power = 2.6,
+  fade,
 }: {
   size: number;
   colour: string;
   intensity: number;
   power?: number;
+  /** Multiplies the intensity every frame. A ref rather than a prop
+   *  so a body can dim without rebuilding its material each frame. */
+  fade?: MutableRefObject<number>;
 }) {
   const ref = useRef<Group>(null);
   const uniforms = useMemo(
@@ -203,6 +210,7 @@ function Glow({
 
   useFrame(({ camera }) => {
     if (ref.current) ref.current.quaternion.copy(camera.quaternion);
+    if (fade) uniforms.uIntensity.value = intensity * fade.current;
   });
 
   return (
@@ -685,25 +693,47 @@ function GasGiant() {
 
 function NeutronStar() {
   const core = useRef<Mesh>(null);
+  const skin = useRef<MeshBasicMaterial>(null);
+  const light = useRef<PointLight>(null);
+  /** 0 while the journey is still elsewhere, 1 on arrival. */
+  const lit = useRef(0);
 
   useFrame(({ clock }) => {
     // a slow pulse, and nothing else: no jets, no rays
     if (core.current) core.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 2.4) * 0.025);
+
+    /* This is the last body on the corridor every other body is
+       strung along, so from the projects it sits right behind the
+       planet being read about. It is lit by arrival rather than by
+       being in frame — see CONTACT_LIT_FROM. */
+    const t = (live.progress - CONTACT_LIT_FROM) / (1 - CONTACT_LIT_FROM);
+    lit.current = Math.min(1, Math.max(0, t));
+    const eased = lit.current * lit.current * (3 - 2 * lit.current);
+
+    if (skin.current) skin.current.opacity = eased;
+    if (light.current) light.current.intensity = 2200 * eased;
   });
 
   return (
     <group position={BODIES.contact}>
       <mesh ref={core}>
         <sphereGeometry args={[1.7, 48, 32]} />
-        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        <meshBasicMaterial
+          ref={skin}
+          color="#ffffff"
+          toneMapped={false}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
       </mesh>
 
-      <Glow size={14} colour="#eaf4ff" intensity={0.85} power={3.4} />
-      <Glow size={34} colour="#9fc8e8" intensity={0.3} power={2.8} />
+      <Glow size={14} colour="#eaf4ff" intensity={0.85} power={3.4} fade={lit} />
+      <Glow size={34} colour="#9fc8e8" intensity={0.3} power={2.8} fade={lit} />
       {/* The outermost halo used to wash a phone screen from edge to
           edge, taking the contact form with it. */}
-      <Glow size={62} colour="#5f8fb8" intensity={0.1} power={2.3} />
-      <pointLight intensity={2200} color="#dceeff" distance={200} decay={2} />
+      <Glow size={62} colour="#5f8fb8" intensity={0.1} power={2.3} fade={lit} />
+      <pointLight ref={light} intensity={0} color="#dceeff" distance={200} decay={2} />
     </group>
   );
 }

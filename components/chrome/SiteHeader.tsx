@@ -23,10 +23,44 @@ export function SiteHeader() {
 
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
 
   const labels = [t.nav.about, t.nav.capabilities, t.nav.work, t.nav.contact];
 
   const close = useCallback(() => setOpen(false), []);
+
+  /**
+   * The header publishes its own height, and nothing else measures it.
+   *
+   * `--header-height` already has a correct static value in
+   * tokens.css, which is what the server renders and what the first
+   * paint uses — so this writes the same number it replaces on a
+   * normal load and causes no shift. What it buys is correctness when
+   * the static value cannot be right: a bar that wraps on a narrow
+   * phone, a font that loads at a different metric, a browser zoom.
+   * Section padding, `scroll-padding-top` and the band the 3D scene
+   * frames against all read the variable, so there is one measurement
+   * behind every one of them.
+   */
+  useEffect(() => {
+    const bar = inner.current;
+    if (!bar) return;
+
+    const root = document.documentElement;
+    const publish = () => {
+      const height = bar.getBoundingClientRect().height;
+      if (height > 0) root.style.setProperty("--header-height", `${Math.round(height)}px`);
+    };
+
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(bar);
+
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--header-height");
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -104,7 +138,7 @@ export function SiteHeader() {
   return (
     <>
       <header className="header" data-scrolled={scrolled} data-open={open}>
-        <div className="shell header__inner">
+        <div ref={inner} className="shell header__inner">
           <a className="wordmark" href="#top" aria-label={t.common.toTop} onClick={goTo("#top")}>
             {site.name}
             <span className="wordmark__signal" aria-hidden="true" />
