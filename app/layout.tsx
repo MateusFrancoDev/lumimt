@@ -3,6 +3,7 @@ import { Archivo, IBM_Plex_Mono } from "next/font/google";
 
 import { SiteFooter } from "@/components/chrome/SiteFooter";
 import { SiteHeader } from "@/components/chrome/SiteHeader";
+import { ScrollJumpProbe } from "@/components/diagnostics/ScrollJumpProbe";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import { SignalCursor } from "@/components/signal/SignalCursor";
 import { site } from "@/lib/content";
@@ -90,6 +91,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SignalCursor />
           {children}
           <SiteFooter />
+          {/* TEMPORARY: records the footer scroll jump, dev only */}
+          {process.env.NODE_ENV === "development" ? <ScrollJumpProbe /> : null}
         </LanguageProvider>
       </body>
     </html>
