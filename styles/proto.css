@@ -969,6 +969,22 @@ html.nav-locked {
   max-width: 44ch;
 }
 
+/* the spam trap: out of the layout and out of reach, but still in the
+   form, which is where a bot looks for fields to fill */
+.pov__trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* while the request is out, the signal is dimmed rather than lit */
+.pov__send .link:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
 /* ------------------------------------------------------------------
    Language toggle — shows both, lights the active one
 ------------------------------------------------------------------ */

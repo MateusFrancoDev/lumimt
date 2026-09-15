@@ -13,6 +13,8 @@ export const site = {
   coordinates: "23°33′S 46°38′W",
   year: "2026",
   email: "lumimt.tech@gmail.com",
+  /** Formspree delivers the contact form to the address above. */
+  formEndpoint: "https://formspree.io/f/xbgjnwgp",
   tagline: "Beyond the known.",
   description:
     "Lumimt is a software house in São Paulo. We design and build digital products — web platforms, SaaS, internal systems, integrations and applied AI — for companies that have outgrown off-the-shelf software.",

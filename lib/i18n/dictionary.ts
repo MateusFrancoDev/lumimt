@@ -63,9 +63,12 @@ export interface Dictionary {
     send: string;
     note: string;
     missing: string;
+    missingEmail: string;
     invalidEmail: string;
+    sending: string;
+    sent: string;
+    failed: string;
     direct: string;
-    opened: string;
     copyLabel: string;
   };
 }
@@ -202,11 +205,14 @@ const pt: Dictionary = {
     message: "Sua ideia",
     placeholder: "O problema, a restrição ou a ideia ainda sem forma.",
     send: "Enviar sinal",
-    note: "Abre seu aplicativo de e-mail com a mensagem pronta.",
+    note: "Respondemos no e-mail que você deixar.",
     missing: "Escreva a ideia antes de enviar.",
+    missingEmail: "Deixe um e-mail para podermos responder.",
     invalidEmail: "Confira o e-mail digitado.",
+    sending: "Enviando",
+    sent: "Sinal recebido. Respondemos em breve no e-mail que você deixou.",
+    failed: "Não conseguimos enviar agora. Tente de novo ou escreva direto para o endereço abaixo.",
     direct: "Ou escreva direto para",
-    opened: "Abrimos seu aplicativo de e-mail. Se nada acontecer, copie o endereço abaixo e mande por lá.",
     copyLabel: "Copiar endereço",
   },
 };
@@ -338,11 +344,14 @@ const en: Dictionary = {
     message: "Your idea",
     placeholder: "The problem, the constraint, or the half-formed idea.",
     send: "Send a signal",
-    note: "Opens your email client with the message ready.",
+    note: "We reply to the email you leave.",
     missing: "Write the idea before sending.",
+    missingEmail: "Leave an email so we can reply.",
     invalidEmail: "Check the email address.",
+    sending: "Sending",
+    sent: "Signal received. We'll reply soon at the email you left.",
+    failed: "We couldn't send it just now. Try again, or write straight to the address below.",
     direct: "Or write straight to",
-    opened: "We opened your email client. If nothing happened, copy the address below and write from there.",
     copyLabel: "Copy address",
   },
 };

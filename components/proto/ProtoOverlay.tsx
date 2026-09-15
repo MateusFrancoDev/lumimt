@@ -56,20 +56,24 @@ function useSnapPause() {
   return { pause, resume };
 }
 
-/** No backend: the form composes a message and hands it to the user's
- *  own mail client. Honest, and it works the moment the site is live.
- *  Plenty of machines have no mail client wired up at all, so the
- *  address is always on screen and always copyable — a mailto: that
- *  silently does nothing is the whole reason this used to look broken. */
+type SendState = "idle" | "sending" | "sent";
+
+/** Sent through Formspree's JSON endpoint with a plain fetch rather
+ *  than its React hook: the form already owns its validation, and the
+ *  messages a visitor reads have to come from the dictionary, not from
+ *  a service that only speaks English. The address stays on screen and
+ *  copyable, so a failed request is never a dead end. */
 function ContactForm() {
   const { t } = useLanguage();
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
+  const [state, setState] = useState<SendState>("idle");
   const [copied, setCopied] = useState(false);
   const { pause, resume } = useSnapPause();
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (state === "sending") return;
+
     const form = event.currentTarget;
     const data = new FormData(form);
     const name = String(data.get("name") ?? "").trim();
@@ -80,39 +84,46 @@ function ContactForm() {
       setError(t.contact.missing);
       return;
     }
-    if (from && !EMAIL.test(from)) {
+    // without a mail client in the loop, this is the only way back
+    if (!from) {
+      setError(t.contact.missingEmail);
+      return;
+    }
+    if (!EMAIL.test(from)) {
       setError(t.contact.invalidEmail);
       return;
     }
     setError("");
+    setState("sending");
 
-    const body = [
-      idea,
-      "",
-      name ? `${t.contact.name}: ${name}` : "",
-      from ? `${t.contact.email}: ${from}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    data.set("name", name);
+    data.set("email", from);
+    data.set("message", idea);
+    data.set("_subject", `${t.contact.send} — Lumimt${name ? ` — ${name}` : ""}`);
 
-    const href = `mailto:${site.email}?subject=${encodeURIComponent(
-      `${t.contact.send} — Lumimt${name ? ` — ${name}` : ""}`,
-    )}&body=${encodeURIComponent(body)}`;
+    try {
+      const response = await fetch(site.formEndpoint, {
+        method: "POST",
+        body: data,
+        headers: { Accept: "application/json" },
+      });
 
-    /* Assigning location.href is what used to break here: the page is
-       one long scroll-snapping section, and a navigation that the
-       browser then refuses to perform left the scroll position moved
-       and nothing opened. A synthetic click on a real link is handled
-       by the browser as a link, and leaves the page alone. */
-    const link = document.createElement("a");
-    link.href = href;
-    link.rel = "noopener";
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (response.ok) {
+        form.reset();
+        setState("sent");
+        return;
+      }
 
-    setSent(true);
+      const result: { errors?: { field?: string }[] } = await response.json().catch(() => ({}));
+      setError(
+        result.errors?.some((entry) => entry.field === "email")
+          ? t.contact.invalidEmail
+          : t.contact.failed,
+      );
+    } catch {
+      setError(t.contact.failed);
+    }
+    setState("idle");
   };
 
   const copy = async () => {
@@ -126,7 +137,24 @@ function ContactForm() {
   };
 
   return (
-    <form className="pov__form" onSubmit={onSubmit} noValidate>
+    <form
+      className="pov__form"
+      action={site.formEndpoint}
+      method="POST"
+      onSubmit={onSubmit}
+      aria-busy={state === "sending"}
+      noValidate
+    >
+      {/* Formspree's honeypot: invisible to people, filled in by bots */}
+      <input
+        type="text"
+        name="_gotcha"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="pov__trap"
+      />
+
       <div className="pov__row">
         <label className="pov__field">
           <span className="mono-sm">{t.contact.name}</span>
@@ -139,6 +167,7 @@ function ContactForm() {
             type="email"
             autoComplete="email"
             inputMode="email"
+            required
             onFocus={pause}
             onBlur={resume}
           />
@@ -151,6 +180,7 @@ function ContactForm() {
           name="message"
           rows={3}
           placeholder={t.contact.placeholder}
+          required
           onFocus={pause}
           onBlur={resume}
         />
@@ -163,8 +193,10 @@ function ContactForm() {
       ) : null}
 
       <div className="pov__send">
-        <button type="submit" className="link">
-          <span className="link__label mono">{t.contact.send}</span>
+        <button type="submit" className="link" disabled={state === "sending"}>
+          <span className="link__label mono">
+            {state === "sending" ? `${t.contact.sending}…` : t.contact.send}
+          </span>
           <span className="link__track" aria-hidden="true" />
           <span className="link__arrow" aria-hidden="true">
             ↗
@@ -173,9 +205,9 @@ function ContactForm() {
         <span className="mono-sm faint">{t.contact.note}</span>
       </div>
 
-      {sent ? (
+      {state === "sent" ? (
         <p className="pov__sent mono-sm" role="status">
-          {t.contact.opened}
+          {t.contact.sent}
         </p>
       ) : null}
 
